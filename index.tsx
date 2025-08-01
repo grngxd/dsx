@@ -15,17 +15,22 @@ bot.on("messageCreate", async (message) => {
     if (message.author.bot) return;
 
     if (message.content === "!test") {
-        const App = () => (
+        const TestComponent = () => (
             <Message>
                 hi
-                <Embed color="#00ff00">
-                    <Title>Counter</Title>
-                    <Description>Count: 0</Description>
-                </Embed>
+                <Counter color="#ff00ff" />
+                <Counter />
             </Message>
         );
 
-        const rendered = render(App());
+        const Counter = ({ color }: { color?: string }) => (
+            <Embed color={color || "#00ff00"}>
+                <Title>Counter</Title>
+                <Description>Count: 0</Description>
+            </Embed>
+        );
+
+        const rendered = render(TestComponent);
         // const jsonified = Object.fromEntries(
         //     Object.entries(msg).map(([key, value]) => [key, value.toJSON ? value.toJSON() : value])
         // );

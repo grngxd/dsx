@@ -5,30 +5,31 @@ function extractText(nodes: Array<VNode | string>): string {
     return nodes.map(node => typeof node === 'string' ? node : extractText(node.children)).join('');
 }
 
-export function render(vnode: VNode): MessageCreateOptions {
-    if (vnode.type !== "Message") {
+export function render(vnode: () => VNode): MessageCreateOptions {
+    const rendered = vnode();
+
+    if (rendered.type !== "Message") {
         throw new Error("Root element must be <Message>");
     }
 
     let content = "";
-    let embed: EmbedBuilder | undefined;
+    let embeds: EmbedBuilder[] = [];
 
 
-    for (const child of vnode.children) {
+    for (const child of rendered.children) {
         if (!child) continue;
         if (typeof child === "string") {
             content += child;
         } else if (child.type === "Embed") {
-            embed = renderEmbed(child);
+            embeds.push(renderEmbed(child));
         } else if (child.type === "Description") {
-            // Description outside Embed: append text
             content += extractText(child.children);
         }
     }
 
     const result: MessageCreateOptions = {};
     if (content) result.content = content;
-    if (embed) result.embeds = [embed];
+    if (embeds.length > 0) result.embeds = embeds;
     return result;
 }
 
