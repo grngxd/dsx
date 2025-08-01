@@ -15,7 +15,6 @@ export function render(vnode: () => VNode): MessageCreateOptions {
     let content = "";
     let embeds: EmbedBuilder[] = [];
 
-
     for (const child of rendered.children) {
         if (!child) continue;
         if (typeof child === "string") {
@@ -27,9 +26,14 @@ export function render(vnode: () => VNode): MessageCreateOptions {
         }
     }
 
-    const result: MessageCreateOptions = {};
-    if (content) result.content = content;
-    if (embeds.length > 0) result.embeds = embeds;
+    const result: MessageCreateOptions = {
+        content: content.trim(),
+        embeds: embeds.length > 0 ? embeds : undefined,
+    };
+
+    if (embeds.length === 0 && content.length === 0) {
+        throw new Error("DISCO: message must have either content or embeds");
+    }
     return result;
 }
 

@@ -5,7 +5,7 @@
     "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
-    "jsxImportSource": "./core/jsx-runtime/jsx-runtime",
+    "jsxImportSource": "./core/jsx-runtime",
     "allowJs": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
