@@ -1,4 +1,3 @@
-// Simple reactive signal implementation with collection for mount
 let collecting = false;
 let collected: Signal<any>[] = [];
 

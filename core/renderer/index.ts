@@ -1,5 +1,5 @@
 import { EmbedBuilder, Message, type MessageCreateOptions, type MessageEditOptions } from "discord.js";
-import { beginCollect, endCollect, Signal } from "../signals";
+import { runComponent } from "../hooks/signal";
 import type { VNode } from "../types";
 import { extractText, toEditOptions } from "./utils";
 
@@ -8,7 +8,11 @@ const renderEmbed = (v: VNode): EmbedBuilder => {
     if (v.props.color) embed.setColor(v.props.color);
 
     for (const child of v.children) {
-        if (typeof child === "string") continue;
+        if (typeof child === "string" || typeof child === "number") {
+            const prev = embed.data.description ?? "";
+            embed.setDescription(prev + String(child));
+            continue;
+        }
         if (child.type === "Title") {
             embed.setTitle(extractText(child.children));
         }
@@ -30,16 +34,15 @@ export const render = (component: () => VNode): MessageCreateOptions => {
     let embeds: EmbedBuilder[] = [];
 
     for (const child of rendered.children) {
-        if (!child) continue;
-
-        if (typeof child === "string") {
+        if (child === null || child === undefined) continue;
+        if (typeof child === "string" || typeof child === "number") {
             content += String(child);
         } else if (child.type === "Embed") {
             embeds.push(renderEmbed(child));
         } else if (child.type === "Description") {
             content += extractText(child.children);
         } else {
-            content += String(child)
+            content += String(child);
         }
     }
 
@@ -59,15 +62,22 @@ export const mount = async (
     initial: (discordMessage: MessageCreateOptions) => Promise<Message<false> | Message<true>> | Message<false> | Message<true>,
     rerender: (discordMessage: MessageEditOptions, sent: Message<false> | Message<true>) => Promise<any> | any
 ) => {
-    beginCollect();
+    let { result: vnode, hooks, effects } = runComponent(component);
 
-    const initialMsg = render(component);
-    const signals: Signal<any>[] = endCollect();
+    const initialMsg = render(() => vnode);
     const sentMsg = await initial(initialMsg);
 
-    for (const signal of signals) {
-        signal.subscribe(async () => {
-            await rerender(toEditOptions(render(component)), sentMsg);
+    for (const effect of effects) {
+        effect();
+    }
+    for (const state of hooks) {
+        state.subscribers.add(async () => {
+            const comp = runComponent(component, hooks);
+            vnode = comp.result;
+            hooks = comp.hooks;
+            const updatedMsg = render(() => vnode);
+            await rerender(toEditOptions(updatedMsg), sentMsg);
         });
     }
+
 }

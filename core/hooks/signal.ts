@@ -1,40 +1,35 @@
-// Simple reactive signal implementation with collection for mount
-let collecting = false;
-let collected: Signal<any>[] = [];
+import { hookContext, type Listener, type State } from "./hook";
 
-export class Signal<T> {
-    private _value: T;
-    private subscribers = new Set<() => void>();
-    constructor(initial: T) {
-        this._value = initial;
+export function useSignal<T>(initial: T) {
+    if (hookContext.currentHooks === null) {
+        throw new Error("useSignal must be called during component render");
     }
-    get value(): T {
-        return this._value;
+    const idx = hookContext.hookIndex++;
+    if (idx === hookContext.currentHooks.length) {
+        hookContext.currentHooks.push({ value: initial, subscribers: new Set() });
     }
-    set value(newValue: T) {
-        this._value = newValue;
-        for (const fn of this.subscribers) fn();
-    }
-    subscribe(fn: () => void) {
-        this.subscribers.add(fn);
-    }
-    unsubscribe(fn: () => void) {
-        this.subscribers.delete(fn);
-    }
+    const state = hookContext.currentHooks[idx] as State<T>;
+    return {
+        get value() { return state.value; },
+        set value(v: T) { state.value = v; state.subscribers.forEach(fn => fn()); },
+        subscribe(fn: Listener) { state.subscribers.add(fn); },
+        unsubscribe(fn: Listener) { state.subscribers.delete(fn); }
+    };
 }
 
-export function useSignal<T>(initial: T): Signal<T> {
-    const sig = new Signal(initial);
-    if (collecting) collected.push(sig);
-    return sig;
-}
 
-export function beginCollect() {
-    collecting = true;
-    collected = [];
-}
-
-export function endCollect(): Signal<any>[] {
-    collecting = false;
-    return collected;
+export function runComponent<T>(component: () => T, hooks?: State<any>[]) {
+    const prevHooks = hookContext.currentHooks;
+    const prevIndex = hookContext.hookIndex;
+    const prevEffects = hookContext.currentEffects;
+    hookContext.currentHooks = hooks ? [...hooks] : [];
+    hookContext.hookIndex = 0;
+    hookContext.currentEffects = [];
+    const result = component();
+    const usedHooks = hookContext.currentHooks!;
+    const usedEffects = hookContext.currentEffects!;
+    hookContext.currentHooks = prevHooks;
+    hookContext.hookIndex = prevIndex;
+    hookContext.currentEffects = prevEffects;
+    return { result, hooks: usedHooks, effects: usedEffects };
 }

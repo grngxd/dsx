@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { Client, EmbedBuilder } from "discord.js";
 import { Description, Embed, Message, Title } from "./core/elements";
+import { useEffect } from "./core/hooks/effect";
 import { useSignal } from "./core/hooks/signal";
 import { mount, render } from "./core/renderer";
 
@@ -99,7 +100,7 @@ test("should handle inf-nested components", () => {
     expect(rendered).toMatchObject(native);
 });
 
-test("should be reactive with signal (will pass without TOKEN/CHANNEL in .env)", () => {
+test("should be reactive with signal (will pass without TOKEN/CHANNEL in .env)", async () => {
     const token = process.env.TOKEN;
     const cid = process.env.CHANNEL;
     if (!token || !cid) {
@@ -107,37 +108,71 @@ test("should be reactive with signal (will pass without TOKEN/CHANNEL in .env)",
         return;
     }
 
-    const bot = new Client({
-        intents: ["Guilds", "GuildMessages", "MessageContent"],
-    })
+    await new Promise((resolve, reject) => {
+        const bot = new Client({
+            intents: ["Guilds", "GuildMessages", "MessageContent"],
+        });
 
-    bot.on("ready", async () => {
-        const channel = await bot.channels.fetch(cid);
-        if (!channel || !channel.isTextBased() || !channel.isSendable()) {
-            console.error("channel not found or not sendable, skipping reactive test");
-            return;
-        }
+        bot.on("ready", async () => {
+            try {
+                const channel = await bot.channels.fetch(cid);
+                if (!channel || !channel.isTextBased() || !channel.isSendable()) {
+                    console.error("channel not found or not sendable, skipping reactive test");
+                    resolve(void 0);
+                    return;
+                }
 
-        console.log(`logged in as ${bot.user?.tag}, sending to channel ${channel.id}`);
+                const Counter = () => {
+                    const count = useSignal(0);
+                    useEffect(() => {
+                        const id = setInterval(() => {
+                            count.value++;
+                        }, 100);
+                        return () => clearInterval(id);
+                    });
+                    return (
+                        <Message>
+                            Current count: {count.value}
+                        </Message>
+                    );
+                };
 
-        const Counter = () => {
-            const count = useSignal(0);
+                let lastContent = "";
+                await mount(
+                    Counter,
+                    async (msg) => {
+                        lastContent = msg.content || "";
+                        return await channel.send(msg);
+                    },
+                    async (msg, sentMsg) => {
+                        lastContent = msg.content || "";
+                        await sentMsg.edit(msg);
+                    }
+                );
 
-            return (
-                <Message>
-                    Current count: {count.value}
-                </Message>
-            );
-        }
+                let tries = 0;
+                let countValue = 0;
+                while (tries < 20) {
+                    await new Promise(res => setTimeout(res, 100));
+                    const match = lastContent.match(/Current count: (\d+)/);
+                    if (match) {
+                        countValue = parseInt(match[1] ?? "0", 10);
+                        if (countValue > 0) break;
+                    }
+                    tries++;
+                }
 
-        await mount(
-            Counter,
-            async (msg) => await channel.send(msg),
-            async (msg, sentMsg) => await sentMsg.edit(msg)
-        )
+                try {
+                    expect(lastContent).toContain("Current count: ");
+                    expect(countValue).toBeGreaterThan(0);
+                    resolve(void 0);
+                } catch (err) {
+                    reject(err);
+                }
+            } catch (err) {
+                reject(err);
+            }
+        });
+        bot.login(token).catch(reject);
     });
-
-    bot.login(token).catch(err => {
-        console.error("failed to login:", err);
-    });
-})
+});

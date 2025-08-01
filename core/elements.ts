@@ -2,7 +2,10 @@ import type { VNode } from "./types";
 
 function normalizeChildren(children: any): Array<VNode | string> {
     if (children == null) return [];
-    return Array.isArray(children) ? children.filter(Boolean) : [children];
+    const arr = Array.isArray(children)
+        ? children.filter(child => child !== null && child !== undefined)
+        : [children];
+    return arr.map(child => typeof child === "number" ? String(child) : child);
 }
 
 export function Message(props: Record<string, any>): VNode {
