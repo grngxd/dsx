@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
-import { EmbedBuilder } from "discord.js";
+import { Client, EmbedBuilder } from "discord.js";
 import { Description, Embed, Message, Title } from "./core/elements";
-import { render } from "./renderer";
+import { useSignal } from "./core/hooks/signal";
+import { mount, render } from "./core/renderer";
 
 test("should handle basic text", () => {
     const rendered = render(() => <Message>disco is goated</Message>);
@@ -97,3 +98,46 @@ test("should handle inf-nested components", () => {
 
     expect(rendered).toMatchObject(native);
 });
+
+test("should be reactive with signal (will pass without TOKEN/CHANNEL in .env)", () => {
+    const token = process.env.TOKEN;
+    const cid = process.env.CHANNEL;
+    if (!token || !cid) {
+        console.error("TOKEN OR CHANNEL not set, skipping reactive test");
+        return;
+    }
+
+    const bot = new Client({
+        intents: ["Guilds", "GuildMessages", "MessageContent"],
+    })
+
+    bot.on("ready", async () => {
+        const channel = await bot.channels.fetch(cid);
+        if (!channel || !channel.isTextBased() || !channel.isSendable()) {
+            console.error("channel not found or not sendable, skipping reactive test");
+            return;
+        }
+
+        console.log(`logged in as ${bot.user?.tag}, sending to channel ${channel.id}`);
+
+        const Counter = () => {
+            const count = useSignal(0);
+
+            return (
+                <Message>
+                    Current count: {count.value}
+                </Message>
+            );
+        }
+
+        await mount(
+            Counter,
+            async (msg) => await channel.send(msg),
+            async (msg, sentMsg) => await sentMsg.edit(msg)
+        )
+    });
+
+    bot.login(token).catch(err => {
+        console.error("failed to login:", err);
+    });
+})
