@@ -1,0 +1,14 @@
+{
+  "name": "disco",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/msgpack-lite": "^0.1.11"
+  },
+  "peerDependencies": {
+    "typescript": "^5",
+    "discord.js": "^14.21.0"
+  },
+  "dependencies": {
+    "msgpack-lite": "^0.1.26"
+  }
+}
