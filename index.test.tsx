@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
 import { Client, EmbedBuilder } from "discord.js";
-import { Description, Embed, Message, Title } from "./core/elements";
 import { useEffect } from "./core/hooks/effect";
 import { useSignal } from "./core/hooks/signal";
 import { mount, render } from "./core/renderer";
+import { Description, Embed, Message, Title } from "./core/renderer/components";
 
 test("should handle basic text", () => {
     const rendered = render(() => <Message>disco is goated</Message>);
@@ -128,6 +128,7 @@ test("should be reactive with signal (will pass without TOKEN/CHANNEL in .env)",
                         const id = setInterval(() => {
                             count.value++;
                         }, 100);
+                        
                         return () => clearInterval(id);
                     });
                     return (

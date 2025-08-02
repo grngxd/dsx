@@ -1,7 +1,8 @@
-import { EmbedBuilder, Message, type MessageCreateOptions, type MessageEditOptions } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, Client, EmbedBuilder, Message, type MessageCreateOptions } from "discord.js";
 import { runComponent } from "../hooks/signal";
 import type { VNode } from "../types";
-import { extractText, toEditOptions } from "./utils";
+import { extractButtons, extractText, toEditOptions, wireInteractions } from "./utils";
+const wiredBots = new WeakSet<Client>();
 
 const renderEmbed = (v: VNode): EmbedBuilder => {
     const embed = new EmbedBuilder();
@@ -41,31 +42,41 @@ export const render = (component: () => VNode): MessageCreateOptions => {
             embeds.push(renderEmbed(child));
         } else if (child.type === "Description") {
             content += extractText(child.children);
-        } else {
-            content += String(child);
         }
     }
 
-    const result: MessageCreateOptions = {
-        content: content.trim(),
-        embeds: embeds.length > 0 ? embeds : undefined,
-    };
+    content = content.trim()
+
+    const buttons = extractButtons(rendered);
+
+    const actions = [buttons] // TODO: add more actions
+
+    const res: MessageCreateOptions = {}
+
+    if (content) res.content = content;
+    if (embeds.length > 0) res.embeds = embeds;
+    if (actions.length > 0) res.components = actions.map(row => new ActionRowBuilder<ButtonBuilder>().addComponents(...row));
 
     if (embeds.length === 0 && content.length === 0) {
         throw new Error("DISCO: message must have either content or embeds");
     }
-    return result;
+    return res;
 }
 
 export const mount = async (
     component: () => VNode,
-    initial: (discordMessage: MessageCreateOptions) => Promise<Message<false> | Message<true>> | Message<false> | Message<true>,
-    rerender: (discordMessage: MessageEditOptions, sent: Message<false> | Message<true>) => Promise<any> | any
+    bot: Client,
+    message: (msg: MessageCreateOptions) => Promise<Message<false> | Message<true>> | Message<false> | Message<true>
 ) => {
+    if (!wiredBots.has(bot)) {
+        wireInteractions(bot);
+        wiredBots.add(bot);
+    }
+
     let { result: vnode, hooks, effects } = runComponent(component);
 
     const initialMsg = render(() => vnode);
-    const sentMsg = await initial(initialMsg);
+    const sentMsg = await message(initialMsg);
 
     for (const effect of effects) {
         effect();
@@ -76,8 +87,7 @@ export const mount = async (
             vnode = comp.result;
             hooks = comp.hooks;
             const updatedMsg = render(() => vnode);
-            await rerender(toEditOptions(updatedMsg), sentMsg);
+            await sentMsg.edit(toEditOptions(updatedMsg));
         });
     }
-
 }

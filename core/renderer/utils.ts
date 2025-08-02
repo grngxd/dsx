@@ -1,5 +1,6 @@
-import type { MessageCreateOptions, MessageEditOptions } from "discord.js";
+import { ButtonBuilder, ButtonStyle, Client, type Interaction, type MessageCreateOptions, type MessageEditOptions } from "discord.js";
 import type { VNode } from "../types";
+import { getButtonHandler } from "./components";
 
 export const extractText = (nodes: Array<VNode | string | number>): string => {
     return nodes.map(node =>
@@ -9,6 +10,38 @@ export const extractText = (nodes: Array<VNode | string | number>): string => {
                 ? extractText(node.children)
                 : ""
     ).join("");
+}
+
+export const extractButtons = (vnode: VNode): ButtonBuilder[] => {
+    const buttons: ButtonBuilder[] = [];
+    function walk(node: VNode) {
+        if (node.type === "Button") {
+            buttons.push(
+                new ButtonBuilder()
+                    .setCustomId(String(node.props.id))
+                    .setLabel(extractText(node.children))
+                    .setStyle(node.props.style || ButtonStyle.Primary)
+            );
+        }
+        if (Array.isArray(node.children)) {
+            node.children.forEach(child => {
+                if (typeof child === "object" && child !== null) walk(child as VNode);
+            });
+        }
+    }
+    walk(vnode);
+    return buttons;
+}
+
+export const wireInteractions = (bot: Client) => {
+    bot.on("interactionCreate", async (interaction: Interaction) => {
+        if (!interaction.isButton()) return;
+        const id = Number(interaction.customId);
+        const handler = getButtonHandler(id, "onClick");
+        
+        if (handler) handler();
+        await interaction.deferUpdate();
+    });
 }
 
 export const toEditOptions = (create: MessageCreateOptions): MessageEditOptions => {
