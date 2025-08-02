@@ -1,5 +1,5 @@
 export type Listener = () => void;
-export interface State<T> { value: T; subscribers: Set<Listener> }
+export type State<T> = { value: T; subscribers: Set<Listener> }
 
 export const hookContext = {
   currentHooks: null as State<any>[] | null,

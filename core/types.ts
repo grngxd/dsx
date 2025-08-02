@@ -1,11 +1,8 @@
-export type Component = (props: ComponentProps) => VNode;
-export type ComponentProps =  Record<string, any> & {
-    children?: any;
-}
+export type Component<P = {}> = (props: P) => VNode<P>;
 
-export type VNode = {
-    type: string | Component;
-    props: Record<string, any>;
+export type VNode<P = {}> = {
+    type: string | Component<P>;
+    props: P;
     children: any;
     key?: string | number;
 };

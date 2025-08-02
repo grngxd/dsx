@@ -14,13 +14,15 @@ export const extractText = (nodes: Array<VNode | string | number>): string => {
 
 export const extractButtons = (vnode: VNode): ButtonBuilder[] => {
     const buttons: ButtonBuilder[] = [];
+    
     function walk(node: VNode) {
         if (node.type === "Button") {
+            const props = node.props as import("./components").ButtonProps;
             buttons.push(
                 new ButtonBuilder()
-                    .setCustomId(String(node.props.id))
+                    .setCustomId(String((props as any).id ?? ""))
                     .setLabel(extractText(node.children))
-                    .setStyle(node.props.style || ButtonStyle.Primary)
+                    .setStyle(props.style ?? ButtonStyle.Primary)
             );
         }
         if (Array.isArray(node.children)) {
@@ -29,17 +31,20 @@ export const extractButtons = (vnode: VNode): ButtonBuilder[] => {
             });
         }
     }
+
     walk(vnode);
+
     return buttons;
 }
 
 export const wireInteractions = (bot: Client) => {
     bot.on("interactionCreate", async (interaction: Interaction) => {
         if (!interaction.isButton()) return;
+
         const id = Number(interaction.customId);
         const handler = getButtonHandler(id, "onClick");
-        
         if (handler) handler();
+
         await interaction.deferUpdate();
     });
 }

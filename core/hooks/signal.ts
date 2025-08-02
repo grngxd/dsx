@@ -8,7 +8,9 @@ export function useSignal<T>(initial: T) {
     if (idx === hookContext.currentHooks.length) {
         hookContext.currentHooks.push({ value: initial, subscribers: new Set() });
     }
+
     const state = hookContext.currentHooks[idx] as State<T>;
+
     return {
         get value() { return state.value; },
         set value(v: T) { state.value = v; state.subscribers.forEach(fn => fn()); },

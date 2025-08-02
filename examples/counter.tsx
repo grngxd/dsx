@@ -12,14 +12,14 @@ bot.on("ready", async (b) => {
 })
 
 bot.on("messageCreate", async (message) => {
-    if (message.content === "!counter") {
+    if (message.content === "counter") {
         const Component = () => {
             const count = useSignal(0);
             return (
                 <Message>
-                    <Embed>
+                    <Embed color={"LuminousVividPink"}>
                         <Title>Counter</Title>
-                        <Description>{count.value}</Description>
+                        <Description>Count: {count.value}</Description>
                     </Embed>
                     <Actions>
                         <Button onClick={() => count.value++}>+</Button>

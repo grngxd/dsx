@@ -4,7 +4,8 @@ import type { VNode } from "../types";
 import { extractButtons, extractText, toEditOptions, wireInteractions } from "./utils";
 const wiredBots = new WeakSet<Client>();
 
-const renderEmbed = (v: VNode): EmbedBuilder => {
+import type { EmbedProps } from "./components";
+const renderEmbed = (v: VNode<EmbedProps>): EmbedBuilder => {
     const embed = new EmbedBuilder();
     if (v.props.color) embed.setColor(v.props.color);
 
