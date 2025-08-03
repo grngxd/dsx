@@ -1,5 +1,5 @@
 {
-  "name": "disco",
+  "name": "dsxjs",
   "devDependencies": {
     "@types/bun": "latest",
     "@types/msgpack-lite": "^0.1.11"
