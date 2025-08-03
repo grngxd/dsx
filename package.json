@@ -1,7 +1,7 @@
 {
   "name": "dsxjs",
   "description": "a lightweight library for building reactive with discord.js & bun (or node)",
-  "version": "0.0.2",
+  "version": "0.0.3",
 
   "author": "grng",
   "license": "MIT",
@@ -19,8 +19,15 @@
     "README.md",
     "LICENSE"
   ],
-
-
+  
+  "exports": {
+    ".": "./out/index.js",
+    "./components": "./out/components/index.js",
+    "./renderer": "./out/renderer/index.js",
+    "./hooks": "./out/hooks/index.js",
+    "./jsx-runtime": "./out/jsx-runtime/index.js",
+    "./types": "./out/types.js"
+  },
 
   "scripts": {
     "prepublishOnly": "tsc --project tsconfig.json"
