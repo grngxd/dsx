@@ -20,6 +20,8 @@
     "LICENSE"
   ],
 
+  
+
   "scripts": {
     "prepublishOnly": "tsc --project tsconfig.json"
   },
