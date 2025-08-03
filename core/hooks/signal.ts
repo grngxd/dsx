@@ -1,4 +1,4 @@
-import { hookContext, type Listener, type State } from "./hook";
+import { hookContext, type Listener, type State } from ".";
 
 export function useSignal<T>(initial: T) {
     if (hookContext.currentHooks === null) {

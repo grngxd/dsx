@@ -7,11 +7,12 @@
     "jsx": "react-jsx",
     "jsxImportSource": "core/jsx-runtime",
     "baseUrl": ".",
+    "outDir": "out",
+    "declaration": true,
     "allowJs": true,
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
-    "noEmit": true,
+    "noEmit": false,
     "strict": true,
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
@@ -22,15 +23,20 @@
     "noPropertyAccessFromIndexSignature": false
   },
   "include": [
-    "core/global.d.ts",
-    "core/jsx-runtime/**/*.ts",
-    "core/types.ts",
-    "core/renderer/components.ts",
-    "core/renderer.ts",
-    "core/disco.ts",
-    "hooks/useSignal.ts",
-    "hooks/useEffect.ts",
     "**/*.ts",
-    "**/*.tsx"
-  ]
+    "**/*.tsx",
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "bun.lockb",
+    "bunfig.toml",
+    "bun.lock",
+    "bun.lock.json",
+    "**/*.d.ts",
+    "**/*.js",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "examples"
+  ],
 }

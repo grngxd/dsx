@@ -1,4 +1,4 @@
-import { hookContext } from "./hook";
+import { hookContext } from ".";
 
 export function useEffect(fn: () => void) {
     if (hookContext.currentEffects === null) {

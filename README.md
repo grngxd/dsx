@@ -12,9 +12,11 @@
 > ### dsx is still in early development and experimental. expect breaking changes and evolving apis.
 
 ```tsx
-import { Message, Embed, Title, Description, Actions, Button, ButtonStyle } from 'dsx';
-import { mount } from 'dsx';
-import { useSignal, useEffect } from 'dsx';
+import { Message, Embed, Title, Description, Actions, Button } from 'dsxjs/components';
+import { mount } from 'dsxjs/renderer';
+import { useSignal, useEffect } from 'dsxjs/hooks';
+
+import { ButtonStyle, Client } from 'discord.js';
 import { bot } from './bot';
 
 const Component = () => {
