@@ -1,7 +1,7 @@
 {
   "name": "dsxjs",
   "description": "a lightweight library for building reactive with discord.js & bun (or node)",
-  "version": "0.0.1",
+  "version": "0.0.2",
 
   "author": "grng",
   "license": "MIT",
@@ -20,7 +20,7 @@
     "LICENSE"
   ],
 
-  
+
 
   "scripts": {
     "prepublishOnly": "tsc --project tsconfig.json"
