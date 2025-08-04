@@ -1,7 +1,7 @@
-import { useSignal } from "core/hooks/signal";
-import { mount } from "core/renderer";
 import { ButtonStyle, Client } from "discord.js";
-import { Actions, Button, Description, Embed, Message, Title } from "../core/renderer/components";
+import { Actions, Button, Description, Embed, Message, Title } from "../components";
+import { useSignal } from "../hooks/signal";
+import { mount } from "../renderer";
 
 const bot = new Client({
     intents: ["Guilds", "GuildMessages", "MessageContent"],

@@ -5,8 +5,9 @@
     "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
-    "jsxImportSource": "core/jsx-runtime",
+    "jsxImportSource": "jsx-runtime",
     "baseUrl": ".",
+    "rootDir": ".",
     "outDir": "out",
     "declaration": true,
     "allowJs": true,
@@ -22,10 +23,7 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-  ],
+  "include": ["**/*.ts", "**/*.tsx"],
   "exclude": [
     "node_modules",
     "dist",
@@ -35,8 +33,5 @@
     "bun.lock.json",
     "**/*.d.ts",
     "**/*.js",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "examples"
-  ],
+  ]
 }
