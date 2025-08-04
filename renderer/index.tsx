@@ -1,31 +1,11 @@
 import { ActionRowBuilder, ButtonBuilder, Client, Message as DiscordMessage, EmbedBuilder, type MessageCreateOptions } from "discord.js";
 import { runComponent } from "../hooks/signal";
-import type { VNode } from "../types";
+import { VNode } from "../types";
 import { extractButtons, extractText, toEditOptions, wireInteractions } from "./utils";
 const wiredBots = new WeakSet<Client>();
 
-import { Description, Embed, Message, Title, type EmbedProps } from "../components";
-const renderEmbed = (v: VNode<EmbedProps>): EmbedBuilder => {
-    const embed = new EmbedBuilder();
-    if (v.props.color) embed.setColor(v.props.color);
-
-    for (const child of v.children) {
-        if (typeof child === "string" || typeof child === "number") {
-            const prev = embed.data.description ?? "";
-            embed.setDescription(prev + String(child));
-            continue;
-        }
-        if (child.type === "Title") {
-            embed.setTitle(extractText(child.children));
-        }
-        if (child.type === "Description") {
-            const prev = embed.data.description ?? "";
-            const text = extractText(child.children);
-            embed.setDescription(prev + (prev ? "\n" : "") + text);
-        }
-    }
-    return embed;
-}
+import { Description, Embed, Message, Title } from "../components";
+import { renderEmbed } from "./renderers";
 
 export const render = (component: () => VNode): MessageCreateOptions => {
     const rendered = component();
@@ -83,24 +63,6 @@ export const mount = async (
     try {
         validateTree(vnode);
     } catch (error: any) {
-        const ErrorComponent = ({ error }: { error: Error }) => (
-            <Message>
-                <Embed color={"Red"}>
-                    <Title>💢 DSX</Title>
-                    <Description>
-                        {[
-                            `Something went wrong while rendering the component.\n\n`,
-                            `\`\`\`\n${error.message}\n\`\`\``,
-                            error.stack ? `\`\`\`\n${error.stack.split("\n").slice(4, 6).join("\n")}\n...\n\`\`\`` : '',
-                            `\n[See the docs](https://github.com/grngxd/dsx) for more info on this error.`
-                        ]
-                        .filter(Boolean)
-                        .join("")}
-                    </Description>
-                </Embed>
-            </Message>
-        );
-
         const msg = render(() => <ErrorComponent error={error} />);
         await message(msg);
         throw error;
@@ -124,13 +86,28 @@ export const mount = async (
 }
 
 export const validateTree = (node: VNode, stack: string[] = []) => {
+    const err = (s: string[] = []) => `${s.reverse().map(c => `<${c}>`).join("\n  ")}`;
+
     const name = typeof node.type === "string" ? node.type : node.type?.name ?? "Unknown";
     stack.push(name);
 
     if (name === "Embed" && !stack.includes("Message")) {
         throw new Error(
-        `<Embed> must be a child of <Message>.\nComponent stack:\n  ${stack.reverse().map(c => `<${c}>`).join("\n  ")}`
+            `<Embed> must be a child of <Message>.\n${err(stack)}`
         );
+    }
+
+    if (name === "Embed") {
+        const children = (node.props as any).children;
+        if (children) {
+            const arr = Array.isArray(children) ? children : [children];
+            const descriptions = arr.filter((c: any) => c && c.type === "Description");
+            if (descriptions.length > 1) {
+                throw new Error(
+                    `<Description> can only be used once inside <Embed>.\n${err(stack)}`
+                );
+            }
+        }
     }
 
     const children = (node.props as any).children;
@@ -144,3 +121,21 @@ export const validateTree = (node: VNode, stack: string[] = []) => {
         }
     }
 }
+
+const ErrorComponent = ({ error }: { error: Error }) => (
+    <Message>
+        <Embed color={"Red"}>
+            <Title>💢 DSX</Title>
+            <Description>
+                {[
+                    `Something went wrong while rendering the component.\n`,
+                    `${"```"}\n${error.message}\n${"```"}`,
+                    error.stack ? `${"```"}js\n${error.stack.split("\n").slice(4, 6).join("\n")}\n...\n${"```"}` : '',
+                    `\n[see the docs](https://github.com/grngxd/dsx) for more info on this error.`
+                ]
+                .filter(Boolean)
+                .join("")}
+            </Description>
+        </Embed>
+    </Message>
+);

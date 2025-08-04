@@ -1,6 +1,6 @@
 import { ButtonBuilder, ButtonStyle, Client, type Interaction, type MessageCreateOptions, type MessageEditOptions } from "discord.js";
 import { getButtonHandler } from "../components";
-import type { VNode } from "../types";
+import { VNode } from "../types";
 
 export const extractText = (nodes: Array<VNode | string | number>): string => {
     return nodes.map(node =>
@@ -15,7 +15,7 @@ export const extractText = (nodes: Array<VNode | string | number>): string => {
 export const extractButtons = (vnode: VNode): ButtonBuilder[] => {
     const buttons: ButtonBuilder[] = [];
     
-    function walk(node: VNode) {
+    const walk = (node: VNode) => {
         if (node.type === "Button") {
             const props = node.props as import("../components").ButtonProps;
             buttons.push(
@@ -33,7 +33,6 @@ export const extractButtons = (vnode: VNode): ButtonBuilder[] => {
     }
 
     walk(vnode);
-
     return buttons;
 }
 

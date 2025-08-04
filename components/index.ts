@@ -1,5 +1,5 @@
-import type { ColorResolvable, Message as DiscordMessage } from "discord.js";
-import type { Component, VNode } from "../types";
+import { ColorResolvable, Message as DiscordMessage } from "discord.js";
+import { Component, VNode } from "../types";
 
 let cid = 0;
 const generate = () => cid++;
@@ -14,9 +14,9 @@ function normalizeChildren(children: any): Array<VNode | string> {
 	);
 }
 
-export type MessageProps = Props;
+export type MessageProps = DefaultProps;
 
-export type Props = {
+export type DefaultProps = {
 	children?: any;
 };
 
@@ -29,7 +29,7 @@ export const Message: Component<MessageProps> = (
 		children: normalizeChildren(props.children),
 	};
 };
-export type EmbedProps = Props & {
+export type EmbedProps = DefaultProps & {
 	color?: ColorResolvable;
 };
 
@@ -37,13 +37,13 @@ export const Embed: Component<EmbedProps> = (props): VNode<EmbedProps> => {
 	return { type: "Embed", props, children: normalizeChildren(props.children) };
 };
 
-export type TitleProps = Props;
+export type TitleProps = DefaultProps;
 
 export const Title: Component<TitleProps> = (props): VNode<TitleProps> => {
 	return { type: "Title", props, children: normalizeChildren(props.children) };
 };
 
-export type DescriptionProps = Props;
+export type DescriptionProps = DefaultProps;
 
 export const Description: Component<DescriptionProps> = (
 	props
@@ -55,7 +55,7 @@ export const Description: Component<DescriptionProps> = (
 	};
 };
 
-export type ActionsProps = Props;
+export type ActionsProps = DefaultProps;
 
 export const Actions: Component<ActionsProps> = (
 	props
@@ -67,7 +67,7 @@ export const Actions: Component<ActionsProps> = (
 	};
 };
 
-export type ButtonProps = Props & {
+export type ButtonProps = DefaultProps & {
 	onClick?: (msg: DiscordMessage<true> | DiscordMessage<false>) => void;
 	style?: any;
 };

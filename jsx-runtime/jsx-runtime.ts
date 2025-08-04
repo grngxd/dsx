@@ -1,4 +1,4 @@
-import type { Component, VNode } from "../types";
+import { Component, VNode } from "../types";
 
 export function jsx(type: string | Component, props: Record<string, any>): VNode {
     const raw = props.children;

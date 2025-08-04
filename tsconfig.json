@@ -12,7 +12,7 @@
     "declaration": true,
     "allowJs": true,
     "moduleResolution": "bundler",
-    "verbatimModuleSyntax": true,
+    "verbatimModuleSyntax": false,
     "noEmit": false,
     "strict": true,
     "skipLibCheck": true,
