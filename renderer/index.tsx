@@ -142,7 +142,9 @@ const ErrorComponent = ({ error }: { error: Error }) => (
                 {[
                     `Something went wrong while rendering the component.\n`,
                     `${"```"}\n${error.message}\n${"```"}`,
-                    error.stack ? `${"```"}js\n${error.stack.split("\n").slice(4, 6).join("\n")}\n...\n${"```"}` : '',
+                    error.stack
+                        ? `${"```"}\n${error.stack.split("\n").slice(1, 6).join("\n")}\n...[0;0m${"```"}`
+                        : '',
                     `\n[see the docs](https://github.com/grngxd/dsx) for more info on this error.`
                 ]
                 .filter(Boolean)
