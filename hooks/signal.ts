@@ -1,6 +1,12 @@
 import { hookContext, useEffect, type Listener, type State } from ".";
 
-export function useSignal<T>(initial: T) {
+type Signal<T> = {
+    value: T;
+    subscribe(fn: Listener): void;
+    unsubscribe(fn: Listener): void;
+}
+
+export function useSignal<T>(initial: T): Signal<T> {
     if (hookContext.currentHooks === null) {
         throw new Error("useSignal must be called during component render");
     }
@@ -19,11 +25,13 @@ export function useSignal<T>(initial: T) {
     };
 }
 
-export function useComputed<T>(compute: () => T): { value: T } {
+export function useComputed<T>(compute: () => T): Signal<T> {
     const signal = useSignal(compute());
+    
     useEffect(() => {
         signal.value = compute();
     });
+
     return signal;
 }
 
