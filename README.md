@@ -61,11 +61,11 @@ await mount(
 ### getting started
 
 ```bash
-bun i https://github.com/grngxd/dsx
+bun i dsxjs
 # or:
-npm install https://github.com/grngxd/dsx
-pnpm install https://github.com/grngxd/dsx
-yarn add https://github.com/grngxd/dsx
+npm install dsxjs
+pnpm install dsxjs
+yarn add dsxjs
 ```
 
 or if you want a bot *and* dsx included (coming soon):
