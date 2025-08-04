@@ -1,6 +1,6 @@
 import { Client } from "discord.js";
 import { Description, Embed, Message, Title } from "../components";
-import { mount } from "../renderer";
+import { dsx, mount } from "../renderer";
 
 const bot = new Client({
     intents: ["Guilds", "GuildMessages", "MessageContent"],
@@ -8,6 +8,7 @@ const bot = new Client({
 
 bot.on("ready", async (b) => {
     console.log(b.user.tag);
+    dsx({ renderErrors: false }) // tell dsx to not show errors in discord (basically production)
 })
 
 bot.on("messageCreate", async (message) => {

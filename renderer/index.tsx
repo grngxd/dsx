@@ -7,6 +7,13 @@ const wiredBots = new WeakSet<Client>();
 import { Description, Embed, Message, Title } from "../components";
 import { renderEmbed } from "./renderers";
 
+type DSXOptions = { renderErrors: boolean; }
+let config: DSXOptions = { renderErrors: true };
+
+export function dsx(options: Partial<DSXOptions>) {
+    config = { ...config, ...options };
+}
+
 export const render = (component: () => VNode): MessageCreateOptions => {
     try {
         const rendered = component();
@@ -42,20 +49,17 @@ export const render = (component: () => VNode): MessageCreateOptions => {
             res.components = actions.map(row => new ActionRowBuilder<ButtonBuilder>().addComponents(...row));
         }
 
-        // if (embeds.length === 0 && content.length === 0) {
-        //     throw new Error("DISCO: message must have either content or embeds");
-        // }
-
-        // validate
         try {
             validateTree(rendered);
         } catch (error: any) {
+            if (!config.renderErrors) throw error;
             res = render(() => <ErrorComponent error={error} />);
         }
             
 
         return res;
     } catch (error: any) {
+        if (!config.renderErrors) throw error;
         return render(() => <ErrorComponent error={error} />);
     }
 }
