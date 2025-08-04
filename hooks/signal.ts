@@ -1,4 +1,4 @@
-import { hookContext, type Listener, type State } from ".";
+import { hookContext, useEffect, type Listener, type State } from ".";
 
 export function useSignal<T>(initial: T) {
     if (hookContext.currentHooks === null) {
@@ -13,10 +13,18 @@ export function useSignal<T>(initial: T) {
 
     return {
         get value() { return state.value; },
-        set value(v: T) { state.value = v; state.subscribers.forEach(fn => fn()); },
+        set value(v: T) { state.value = v; state.subscribers.forEach(async (fn) => await fn()); },
         subscribe(fn: Listener) { state.subscribers.add(fn); },
         unsubscribe(fn: Listener) { state.subscribers.delete(fn); }
     };
+}
+
+export function useComputed<T>(compute: () => T): { value: T } {
+    const signal = useSignal(compute());
+    useEffect(() => {
+        signal.value = compute();
+    });
+    return signal;
 }
 
 
