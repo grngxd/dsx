@@ -1,25 +1,15 @@
 import { ColorResolvable, Message as DiscordMessage } from "discord.js";
 import { Component, VNode } from "../types";
+import { normalizeChildren } from "./utils";
 
 let cid = 0;
 const generate = () => cid++;
-
-function normalizeChildren(children: any): Array<VNode | string> {
-	if (children == null) return [];
-	const arr = Array.isArray(children)
-		? children.filter((child) => child !== null && child !== undefined)
-		: [children];
-	return arr.map((child) =>
-		typeof child === "number" ? String(child) : child
-	);
-}
-
-export type MessageProps = DefaultProps;
 
 export type DefaultProps = {
 	children?: any;
 };
 
+export type MessageProps = DefaultProps;
 export const Message: Component<MessageProps> = (
 	props
 ): VNode<MessageProps> => {
@@ -29,22 +19,18 @@ export const Message: Component<MessageProps> = (
 		children: normalizeChildren(props.children),
 	};
 };
-export type EmbedProps = DefaultProps & {
-	color?: ColorResolvable;
-};
 
+export type EmbedProps = DefaultProps & { color?: ColorResolvable };
 export const Embed: Component<EmbedProps> = (props): VNode<EmbedProps> => {
 	return { type: "Embed", props, children: normalizeChildren(props.children) };
 };
 
 export type TitleProps = DefaultProps;
-
 export const Title: Component<TitleProps> = (props): VNode<TitleProps> => {
 	return { type: "Title", props, children: normalizeChildren(props.children) };
 };
 
 export type DescriptionProps = DefaultProps;
-
 export const Description: Component<DescriptionProps> = (
 	props
 ): VNode<DescriptionProps> => {
@@ -56,7 +42,6 @@ export const Description: Component<DescriptionProps> = (
 };
 
 export type ActionsProps = DefaultProps;
-
 export const Actions: Component<ActionsProps> = (
 	props
 ): VNode<ActionsProps> => {
@@ -71,9 +56,6 @@ export type ButtonProps = DefaultProps & {
 	onClick?: (msg: DiscordMessage<true> | DiscordMessage<false>) => void;
 	style?: any;
 };
-
-const btnHandlers = new Map<number, Map<string, Function>>();
-
 export const Button: Component<ButtonProps> = (props): VNode<ButtonProps> => {
 	const id = generate();
 	
@@ -91,6 +73,7 @@ export const Button: Component<ButtonProps> = (props): VNode<ButtonProps> => {
 	};
 };
 
+const btnHandlers = new Map<number, Map<string, Function>>();
 export const getButtonHandler = (
 	id: number,
 	event: string

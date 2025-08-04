@@ -85,47 +85,47 @@ export const mount = async (
     }
 }
 
-export const validateTree = (node: VNode, stack: string[] = []) => {
-    const err = (s: string[] = []) => `${s.reverse().map(c => `<${c}>`).join("\n  ")}`;
-
+export const validateTree = (node: VNode, parentType?: string) => {
     const name = typeof node.type === "string" ? node.type : node.type?.name ?? "Unknown";
-    stack.push(name);
 
-    if (name === "Embed" && !stack.includes("Message")) {
-        throw new Error(
-            `<Embed> must be a child of <Message>.\n${err(stack)}`
-        );
+    // <Embed> must be a child of <Message>
+    if (name === "Embed" && parentType !== "Message") {
+        throw new Error(`<Embed> must be a child of <Message>`);
     }
 
+    // <Description> can only be used once inside <Embed>
     if (name === "Embed") {
         const children = (node.props as any).children;
         if (children) {
             const arr = Array.isArray(children) ? children : [children];
             const descriptions = arr.filter((c: any) => c && c.type === "Description");
             if (descriptions.length > 1) {
-                throw new Error(
-                    `<Description> can only be used once inside <Embed>.\n${err(stack)}`
-                );
+                throw new Error(`<Description> can only be used once inside <Embed>`);
             }
         }
+    }
+    
+    // <Actions> can only be used inside <Message>
+    if (name === "Actions" && parentType !== "Message") {
+        throw new Error(`<Actions> can only be used inside <Message>`);
     }
 
     const children = (node.props as any).children;
     if (children) {
         const arr = Array.isArray(children) ? children : [children];
-
         for (const child of arr) {
             if (typeof child === "object" && child !== null) {
-                validateTree(child, [...stack]);
+                validateTree(child, name);
             }
         }
     }
 }
 
+// meta
 const ErrorComponent = ({ error }: { error: Error }) => (
     <Message>
         <Embed color={"Red"}>
-            <Title>💢 DSX</Title>
+            <Title>💢 DSX{error.cause ? `: ${error.cause}` : ""}</Title>
             <Description>
                 {[
                     `Something went wrong while rendering the component.\n`,
