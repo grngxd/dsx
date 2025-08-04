@@ -41,6 +41,32 @@ export const Description: Component<DescriptionProps> = (
 	};
 };
 
+export type FieldsProps = DefaultProps
+& {
+	children?: Array<VNode | string>;
+};
+
+export const Fields: Component<FieldsProps> = (
+	props
+): VNode<FieldsProps> => {
+	return {
+		type: "Fields",
+		props,
+		children: normalizeChildren(props.children),
+	};
+};
+
+export type FieldProps = DefaultProps & {
+	inline?: boolean;
+};
+export const Field: Component<FieldProps> = (props): VNode<FieldProps> => {
+	return {
+		type: "Field",
+		props,
+		children: normalizeChildren(props.children),
+	};
+}
+
 export type ActionsProps = DefaultProps;
 export const Actions: Component<ActionsProps> = (
 	props

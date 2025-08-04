@@ -8,44 +8,56 @@ import { Description, Embed, Message, Title } from "../components";
 import { renderEmbed } from "./renderers";
 
 export const render = (component: () => VNode): MessageCreateOptions => {
-    const rendered = component();
+    try {
+        const rendered = component();
 
-    if (rendered.type !== "Message") {
-        throw new Error("Root element must be <Message>");
-    }
-
-    let content = "";
-    let embeds: EmbedBuilder[] = [];
-
-    for (const child of rendered.children) {
-        if (child === null || child === undefined) continue;
-        if (typeof child === "string" || typeof child === "number") {
-            content += String(child);
-        } else if (child.type === "Embed") {
-            embeds.push(renderEmbed(child));
-        } else if (child.type === "Description") {
-            content += extractText(child.children);
+        if (rendered.type !== "Message") {
+            throw new Error("Root element must be <Message>");
         }
+
+        let content = "";
+        let embeds: EmbedBuilder[] = [];
+
+        for (const child of rendered.children) {
+            if (child === null || child === undefined) continue;
+            if (typeof child === "string" || typeof child === "number") {
+                content += String(child);
+            } else if (child.type === "Embed") {
+                embeds.push(renderEmbed(child));
+            } else if (child.type === "Description") {
+                content += extractText(child.children);
+            }
+        }
+
+        content = content.trim()
+
+        const buttons = extractButtons(rendered);
+        const actions = [buttons].filter(row => row.length >= 1 && row.length <= 5); // Only valid rows
+
+        let res: MessageCreateOptions = {};
+
+        if (content) res.content = content;
+        if (embeds.length > 0) res.embeds = embeds;
+        if (actions.length > 0) {
+            res.components = actions.map(row => new ActionRowBuilder<ButtonBuilder>().addComponents(...row));
+        }
+
+        // if (embeds.length === 0 && content.length === 0) {
+        //     throw new Error("DISCO: message must have either content or embeds");
+        // }
+
+        // validate
+        try {
+            validateTree(rendered);
+        } catch (error: any) {
+            res = render(() => <ErrorComponent error={error} />);
+        }
+            
+
+        return res;
+    } catch (error: any) {
+        return render(() => <ErrorComponent error={error} />);
     }
-
-    content = content.trim()
-
-    const buttons = extractButtons(rendered);
-    const actions = [buttons].filter(row => row.length >= 1 && row.length <= 5); // Only valid rows
-
-    const res: MessageCreateOptions = {};
-
-    if (content) res.content = content;
-    if (embeds.length > 0) res.embeds = embeds;
-    if (actions.length > 0) {
-        res.components = actions.map(row => new ActionRowBuilder<ButtonBuilder>().addComponents(...row));
-    }
-
-    if (embeds.length === 0 && content.length === 0) {
-        throw new Error("DISCO: message must have either content or embeds");
-    }
-
-    return res;
 }
 
 export const mount = async (
@@ -60,13 +72,13 @@ export const mount = async (
 
     let { result: vnode, hooks, effects } = runComponent(component);
 
-    try {
-        validateTree(vnode);
-    } catch (error: any) {
-        const msg = render(() => <ErrorComponent error={error} />);
-        await message(msg);
-        throw error;
-    }
+    // try {
+    //     validateTree(vnode);
+    // } catch (error: any) {
+    //     const msg = render(() => <ErrorComponent error={error} />);
+    //     await message(msg);
+    //     throw error;
+    // }
 
     const initialMsg = render(() => vnode);
     const sentMsg = await message(initialMsg);

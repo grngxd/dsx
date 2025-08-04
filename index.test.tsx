@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { Client, EmbedBuilder } from "discord.js";
-import { Description, Embed, Message, Title } from "./components";
+import { Description, Embed, Field, Fields, Message, Title } from "./components";
 import { useEffect } from "./hooks/effect";
 import { useSignal } from "./hooks/signal";
 import { mount, render } from "./renderer";
@@ -138,7 +138,21 @@ test("should be reactive with signal (will pass without TOKEN/CHANNEL in .env)",
           async (msg) => {
             const sent = await channel.send(msg);
             lastContent = sent.content;
-            return sent;
+
+            const proxy = new Proxy(sent, {
+              get(target, prop, receiver) {
+                if (prop === "edit") {
+                  return async (newMsg: any) => {
+                    const result = await target.edit(newMsg);
+                    lastContent = result.content;
+                    return result;
+                  };
+                }
+                return Reflect.get(target, prop, receiver);
+              }
+            });
+
+            return proxy;
           },
         );
 
@@ -168,3 +182,49 @@ test("should be reactive with signal (will pass without TOKEN/CHANNEL in .env)",
     bot.login(token).catch(reject);
   });
 });
+
+test("should throw error for invalid embed structure", () => {
+  const result = render(() => (
+    <Message>
+      <Embed>
+        <Description>Only one description allowed</Description>
+        <Description>Another description</Description>
+      </Embed>
+    </Message>
+  ));
+  expect((result.embeds![0] as EmbedBuilder).data.description).toInclude(
+    "<Description> can only be used once inside <Embed>"
+  );
+});
+
+test("fields", () => {
+  const result = render(() => (
+    <Message>
+      <Embed>
+        <Title>Fields Test</Title>
+        <Description>Testing fields in embed</Description>
+        <Fields>
+          <Field inline>
+            <Title>Field 1</Title>
+            <Description>Value 1</Description>
+          </Field>
+
+          <Field>
+            <Title>Field 2</Title>
+            <Description>Value 2</Description>
+          </Field>
+        </Fields>
+      </Embed>
+    </Message>
+  ))
+
+  const embed = result.embeds![0] as EmbedBuilder;
+  expect(embed.data.fields).toHaveLength(2);
+  expect(embed.data.fields![0]!.name).toBe("Field 1");
+  expect(embed.data.fields![0]!.value).toBe("Value 1");
+  expect(embed.data.fields![0]!.inline).toBe(true);
+
+  expect(embed.data.fields![1]!.name).toBe("Field 2");
+  expect(embed.data.fields![1]!.value).toBe("Value 2");
+  expect(embed.data.fields![1]!.inline).toBe(false);
+})
