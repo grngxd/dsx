@@ -13,6 +13,8 @@
 
 <div style="display: flex; gap: 1rem; align-items: flex-start; justify-content: center;">
 
+<div>
+
 ```tsx
 import { ButtonStyle, Client } from "discord.js";
 import { Actions, Button, Description, Embed, Message, Title } from "dsxjs/components";
@@ -52,6 +54,8 @@ bot.on("messageCreate", async (message) => {
 
 bot.login(process.env.TOKEN).catch(console.error);
 ```
+
+</div>
 
 <video src="./assets/counter.mp4" muted autoplay loop width="100%"></video>
 
