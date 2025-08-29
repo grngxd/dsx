@@ -12,7 +12,6 @@
 > ### dsx is still in early development and experimental. expect breaking changes and evolving apis.
 
 <div style="display: flex; gap: 1rem; align-items: flex-start; justify-content: center;">
-
 <div>
 
 ```tsx
@@ -57,7 +56,7 @@ bot.login(process.env.TOKEN).catch(console.error);
 
 </div>
 
-<video src="./assets/counter.mp4" muted autoplay loop width="100%"></video>
+![counter](./assets/counter.gif)
 
 </div>
 
