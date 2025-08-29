@@ -11,6 +11,8 @@
 > [!CAUTION]  
 > ### dsx is still in early development and experimental. expect breaking changes and evolving apis.
 
+![counter example](./assets/counter.mp4)
+
 ```tsx
 import { Message, Embed, Title, Description, Actions, Button } from 'dsxjs/components';
 import { mount } from 'dsxjs/renderer';
