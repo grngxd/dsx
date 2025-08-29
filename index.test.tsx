@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { Client, EmbedBuilder } from "discord.js";
-import { Description, Embed, Field, Fields, Message, Title } from "./components";
+import { Description, Dropdown, Embed, Field, Fields, Message, Title } from "./components";
 import { useEffect } from "./hooks/effect";
 import { useSignal } from "./hooks/signal";
 import { mount, render } from "./renderer";
@@ -42,11 +42,11 @@ test("should handle multiple embeds", () => {
     <Message>
       <Embed color="#FF0000">
         <Title>test</Title>
-        <Description> what's lookin good cookin?</Description>
+        <Description>what's lookin good cookin?</Description>
       </Embed>
       <Embed color="#00FF00">
         <Title>another embed</Title>
-        <Description> more content here</Description>
+        <Description>more content here</Description>
       </Embed>
     </Message>
   ));
@@ -56,11 +56,11 @@ test("should handle multiple embeds", () => {
       new EmbedBuilder()
         .setColor("#FF0000")
         .setTitle("test")
-        .setDescription(" what's lookin good cookin?"),
+        .setDescription("what's lookin good cookin?"),
       new EmbedBuilder()
         .setColor("#00FF00")
         .setTitle("another embed")
-        .setDescription(" more content here"),
+        .setDescription("more content here"),
     ],
   };
 
@@ -123,8 +123,8 @@ test("should be reactive with signal (will pass without TOKEN/CHANNEL in .env)",
           const count = useSignal(0);
           useEffect(() => {
             const id = setInterval(() => {
-              count.value++;
-            }, 100);
+            count.value++;
+          }, 100);
 
             return () => clearInterval(id);
           });
@@ -228,3 +228,41 @@ test("fields", () => {
   expect(embed.data.fields![1]!.value).toBe("Value 2");
   expect(embed.data.fields![1]!.inline).toBe(false);
 })
+
+test("dropdown", () => {
+  const result = render(() => (
+    <Message>
+      <Embed>
+        <Dropdown
+          placeholder="Select an option"
+          options={[
+            { label: "One", description: "First", value: "one" },
+            { label: "Two", description: "Second", value: "two" },
+          ]}
+        />
+      </Embed>
+    </Message>
+  ));
+
+  // components should exist and contain an action row
+  expect(result.components).toBeDefined();
+  expect(result.components!.length).toBeGreaterThan(0);
+
+  const actionRow = result.components![0] as any;
+  // action row builders expose their child components in .components
+  const menu = actionRow.components?.[0];
+  expect(menu).toBeDefined();
+
+  // builder .data should contain placeholder and options
+  expect(menu.data).toBeDefined();
+  expect(menu.data.placeholder).toBe("Select an option");
+  expect(menu.data.options).toHaveLength(2);
+  expect(menu.data.options[0].label).toBe("One");
+  expect(menu.data.options[0].value).toBe("one");
+  expect(menu.data.options[1].label).toBe("Two");
+  expect(menu.data.options[1].value).toBe("two");
+
+  // ensure a custom id was generated (either custom_id or customId depending on version)
+  const customId = menu.data.custom_id ?? menu.data.customId ?? menu.data.customId;
+  expect(typeof customId).toBe("string");
+});

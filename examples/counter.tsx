@@ -17,14 +17,10 @@ bot.on("messageCreate", async (message) => {
             const count = useSignal(0);
             return (
                 <Message>
-                    <Embed color={"LuminousVividPink"}>
-                        <Title>Counter</Title>
-                        <Description>Count: {count.value}</Description>
-                    </Embed>
                     <Actions>
                         <Button onClick={() => count.value++}>+</Button>
+                        <Button style={ButtonStyle.Secondary} onClick={() => count.value = 0}>{count.value}</Button>
                         <Button onClick={() => count.value--}>-</Button>
-                        <Button onClick={() => count.value = 0} style={ButtonStyle.Danger}>Reset</Button>
                     </Actions>
                 </Message>
             )
@@ -33,7 +29,7 @@ bot.on("messageCreate", async (message) => {
         await mount(
             Component,
             bot,
-            m => message.channel.send(m)
+            mounted => message.reply(mounted)
         )
     }
 });

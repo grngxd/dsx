@@ -1,7 +1,7 @@
-import { ActionRowBuilder, ButtonBuilder, Client, Message as DiscordMessage, EmbedBuilder, type MessageCreateOptions } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, Client, Message as DiscordMessage, EmbedBuilder, PartialMessage, StringSelectMenuBuilder, type MessageCreateOptions } from "discord.js";
 import { runComponent } from "../hooks/signal";
 import { VNode } from "../types";
-import { extractButtons, extractText, toEditOptions, wireInteractions } from "./utils";
+import { extractButtons, extractDropdowns, extractText, toEditOptions, wireInteractions } from "./utils";
 const wiredBots = new WeakSet<Client>();
 
 import { Description, Embed, Message, Title } from "../components";
@@ -39,14 +39,27 @@ export const render = (component: () => VNode): MessageCreateOptions => {
         content = content.trim()
 
         const buttons = extractButtons(rendered);
-        const actions = [buttons].filter(row => row.length >= 1 && row.length <= 5); // Only valid rows
+        const dropdowns = extractDropdowns(rendered);
 
         let res: MessageCreateOptions = {};
 
         if (content) res.content = content;
         if (embeds.length > 0) res.embeds = embeds;
-        if (actions.length > 0) {
-            res.components = actions.map(row => new ActionRowBuilder<ButtonBuilder>().addComponents(...row));
+        
+        const components: any[] = [];
+
+        if (buttons.length > 0) {
+            components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons));
+        }
+        
+        if (dropdowns.length > 0) {
+            for (const menu of dropdowns) {
+                components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu));
+            }
+        }
+
+        if (components.length > 0) {
+            res.components = components;
         }
 
         try {
@@ -67,22 +80,19 @@ export const render = (component: () => VNode): MessageCreateOptions => {
 export const mount = async (
     component: () => VNode,
     bot: Client,
-    message: (msg: MessageCreateOptions) => Promise<DiscordMessage<false> | DiscordMessage<true>> | DiscordMessage<false> | DiscordMessage<true>
-) => {
+    /**
+     * @example m => message.reply(m)
+     */
+    message: (
+        msg: MessageCreateOptions
+    ) => DiscordMessage<boolean> | Promise<DiscordMessage<boolean>>
+): Promise<void> => {
     if (!wiredBots.has(bot)) {
         wireInteractions(bot);
         wiredBots.add(bot);
     }
 
     let { result: vnode, hooks, effects } = runComponent(component);
-
-    // try {
-    //     validateTree(vnode);
-    // } catch (error: any) {
-    //     const msg = render(() => <ErrorComponent error={error} />);
-    //     await message(msg);
-    //     throw error;
-    // }
 
     const initialMsg = render(() => vnode);
     const sentMsg = await message(initialMsg);

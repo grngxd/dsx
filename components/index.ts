@@ -106,3 +106,36 @@ export const getButtonHandler = (
 ): Function | undefined => {
 	return btnHandlers.get(id)?.get(event);
 };
+
+export type DropdownProps = DefaultProps & {
+	placeholder?: string
+	options?: Array<{ label: string; description: string; value: string }>;
+	onChange?: (value: string) => void;
+}
+
+const dropdownHandlers = new Map<number, Map<string, Function>>();
+export const Dropdown: Component<DropdownProps> = (
+	props
+): VNode<DropdownProps> => {
+	const id = generate();
+	
+	for (const [key, value] of Object.entries(props)) {
+		if (key.startsWith("on") && typeof value === "function") {
+			if (!dropdownHandlers.has(id)) dropdownHandlers.set(id, new Map());
+			dropdownHandlers.get(id)!.set(key, value);
+		}
+	}
+
+	return {
+		type: "Dropdown",
+		props: { ...props, id } as any,
+		children: normalizeChildren(props.children),
+	};
+};
+
+export const getDropdownHandler = (
+	id: number,
+	event: string
+): Function | undefined => {
+	return dropdownHandlers.get(id)?.get(event);
+};

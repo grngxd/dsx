@@ -4,7 +4,7 @@
 
 ---
 
-> ` a lightweight library for building reactive with discord.js & bun (or node) `
+> ` create interactive messages using react-like components and fine-grained reactivity `
 
 ---
 
@@ -19,29 +19,28 @@ import { useSignal, useEffect } from 'dsxjs/hooks';
 import { ButtonStyle, Client } from 'discord.js';
 import { bot } from './bot';
 
-const Component = () => {
-    const count = useSignal(0);
+bot.on("messageCreate", async (message) => {
+    if (message.content === "counter") {
+        const Component = () => {
+            const count = useSignal(0);
+            return (
+                <Message>
+                    <Actions>
+                        <Button onClick={() => count.value++}>+</Button>
+                        <Button style={ButtonStyle.Secondary} onClick={() => count.value = 0}>{count.value}</Button>
+                        <Button onClick={() => count.value--}>-</Button>
+                    </Actions>
+                </Message>
+            )
+        }
 
-    return (
-        <Message>
-            <Embed>
-                <Title>Counter</Title>
-                <Description>{count.value}</Description>
-            </Embed>
-            <Actions>
-                <Button onClick={() => count.value++}>+</Button>
-                <Button onClick={() => count.value--}>-</Button>
-                <Button onClick={() => count.value = 0} style={ButtonStyle.Danger}>Reset</Button>
-            </Actions>
-        </Message>
-    )
-}
-
-await mount(
-    Component,
-    bot,
-    opts => message.channel.send(opts)
-)
+        await mount(
+            Component,
+            bot,
+            mounted => message.reply(mounted)
+        )
+    }
+});
 ```
 
 ### key features
