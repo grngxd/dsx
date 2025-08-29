@@ -11,15 +11,21 @@
 > [!CAUTION]  
 > ### dsx is still in early development and experimental. expect breaking changes and evolving apis.
 
-![counter example](./assets/counter.mp4)
+<div style="display: flex; gap: 1rem; align-items: flex-start; justify-content: center;">
 
 ```tsx
-import { Message, Embed, Title, Description, Actions, Button } from 'dsxjs/components';
-import { mount } from 'dsxjs/renderer';
-import { useSignal, useEffect } from 'dsxjs/hooks';
+import { ButtonStyle, Client } from "discord.js";
+import { Actions, Button, Description, Embed, Message, Title } from "dsxjs/components";
+import { useSignal } from "dsxjs/hooks";
+import { mount } from "dsxjs/renderer";
 
-import { ButtonStyle, Client } from 'discord.js';
-import { bot } from './bot';
+const bot = new Client({
+    intents: ["Guilds", "GuildMessages", "MessageContent"],
+});
+
+bot.on("ready", async (b) => {
+    console.log(b.user.tag);
+})
 
 bot.on("messageCreate", async (message) => {
     if (message.content === "counter") {
@@ -43,7 +49,13 @@ bot.on("messageCreate", async (message) => {
         )
     }
 });
+
+bot.login(process.env.TOKEN).catch(console.error);
 ```
+
+<video src="./assets/counter.mp4" muted autoplay loop width="100%"></video>
+
+</div>
 
 ### key features
 - **reactive**: fine-grained reactivity with `useSignal` and `useEffect` hooks

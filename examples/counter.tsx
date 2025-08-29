@@ -1,6 +1,6 @@
 import { ButtonStyle, Client } from "discord.js";
 import { Actions, Button, Description, Embed, Message, Title } from "../components";
-import { useSignal } from "../hooks/signal";
+import { useSignal } from "../hooks";
 import { mount } from "../renderer";
 
 const bot = new Client({
