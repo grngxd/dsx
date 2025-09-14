@@ -2,8 +2,9 @@ import { ColorResolvable, Message as DiscordMessage } from "discord.js";
 import { Component, VNode } from "../types";
 import { normalizeChildren } from "./utils";
 
-let cid = 0;
+export let cid = 0;
 const generate = () => cid++;
+export const reset = () => cid = 0;
 
 export type DefaultProps = {
 	children?: any;

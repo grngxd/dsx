@@ -4,7 +4,7 @@ import { VNode } from "../types";
 import { extractButtons, extractDropdowns, extractText, toEditOptions, wireInteractions } from "./utils";
 const wiredBots = new WeakSet<Client>();
 
-import { Description, Embed, Message, Title } from "../components";
+import { Description, Embed, Message, reset, Title } from "../components";
 import { renderEmbed } from "./renderers";
 
 type DSXOptions = { renderErrors: boolean; }
@@ -16,6 +16,7 @@ export function dsx(options: Partial<DSXOptions>) {
 
 export const render = (component: () => VNode): MessageCreateOptions => {
     try {
+        reset();
         const rendered = component();
 
         if (rendered.type !== "Message") {
@@ -106,6 +107,12 @@ export const mount = async (
             vnode = comp.result;
             hooks = comp.hooks;
             const updatedMsg = render(() => vnode);
+
+            const sameComponents = JSON.stringify(updatedMsg.components) === JSON.stringify(initialMsg.components);
+            const sameContent = (updatedMsg.content ?? "") === (initialMsg.content ?? "");
+            const sameEmbeds = JSON.stringify(updatedMsg.embeds) === JSON.stringify(initialMsg.embeds);
+
+            if (sameComponents && sameContent && sameEmbeds) return;
             await sentMsg.edit(toEditOptions(updatedMsg));
         });
     }
