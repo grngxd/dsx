@@ -6,7 +6,7 @@
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "jsxImportSource": "jsx-runtime",
-    "baseUrl": ".",
+    "paths": {"*": ["./*"]},
     "rootDir": ".",
     "outDir": "out",
     "declaration": true,
