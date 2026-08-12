@@ -91,6 +91,6 @@ export const wireInteractions = (bot: Client) => {
 }
 
 export const toEditOptions = (create: MessageCreateOptions): MessageEditOptions => {
-    const { content, embeds, components, files } = create;
-    return { content, embeds, components, files };
+    // const { content, embeds, components, files, flags, allowedMentions, enforceNonce, forward, nonce } = create;
+    return { ...create } as MessageEditOptions;
 }

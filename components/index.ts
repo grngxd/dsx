@@ -10,7 +10,10 @@ export type DefaultProps = {
 	children?: any;
 };
 
-export type MessageProps = DefaultProps;
+export type MessageProps = DefaultProps & {
+	v2?: boolean;
+};
+
 export const Message: Component<MessageProps> = (
 	props
 ): VNode<MessageProps> => {
@@ -141,3 +144,37 @@ export const getDropdownHandler = (
 ): Function | undefined => {
 	return dropdownHandlers.get(id)?.get(event);
 };
+
+// v2 components
+export type TextDisplayProps = DefaultProps;
+
+export const TextDisplay: Component<TextDisplayProps> = (
+    props
+): VNode<TextDisplayProps> => ({
+    type: "TextDisplay",
+    props,
+    children: normalizeChildren(props.children),
+});
+
+export type SeparatorProps = DefaultProps;
+
+export const Separator: Component<SeparatorProps> = (
+    props
+): VNode<SeparatorProps> => ({
+    type: "Separator",
+    props,
+    children: normalizeChildren(props.children),
+});
+
+export type ContainerProps = DefaultProps & {
+    accentColor?: number;
+    spoiler?: boolean;
+};
+
+export const Container: Component<ContainerProps> = (
+    props
+): VNode<ContainerProps> => ({
+    type: "Container",
+    props,
+    children: normalizeChildren(props.children),
+});

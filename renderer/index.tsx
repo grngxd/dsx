@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ButtonBuilder, Client, Message as DiscordMessage, EmbedBuilder, PartialMessage, StringSelectMenuBuilder, type MessageCreateOptions } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, Client, ContainerBuilder, Message as DiscordMessage, EmbedBuilder, MessageFlags, PartialMessage, SeparatorBuilder, StringSelectMenuBuilder, TextDisplayBuilder, type MessageCreateOptions } from "discord.js";
 import { runComponent } from "../hooks/signal";
 import { VNode } from "../types";
 import { extractButtons, extractDropdowns, extractText, toEditOptions, wireInteractions } from "./utils";
@@ -17,66 +17,168 @@ export function dsx(options: Partial<DSXOptions>) {
 export const render = (component: () => VNode): MessageCreateOptions => {
     try {
         reset();
+
         const rendered = component();
 
         if (rendered.type !== "Message") {
             throw new Error("Root element must be <Message>");
         }
 
-        let content = "";
-        let embeds: EmbedBuilder[] = [];
-
-        for (const child of rendered.children) {
-            if (child === null || child === undefined) continue;
-            if (typeof child === "string" || typeof child === "number") {
-                content += String(child);
-            } else if (child.type === "Embed") {
-                embeds.push(renderEmbed(child));
-            } else if (child.type === "Description") {
-                content += extractText(child.children);
-            }
+        if ((rendered.props as any).v2) {
+            return renderV2(rendered);
         }
 
-        content = content.trim()
-
-        const buttons = extractButtons(rendered);
-        const dropdowns = extractDropdowns(rendered);
-
-        let res: MessageCreateOptions = {};
-
-        if (content) res.content = content;
-        if (embeds.length > 0) res.embeds = embeds;
-        
-        const components: any[] = [];
-
-        if (buttons.length > 0) {
-            components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons));
-        }
-        
-        if (dropdowns.length > 0) {
-            for (const menu of dropdowns) {
-                components.push(new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu));
-            }
-        }
-
-        if (components.length > 0) {
-            res.components = components;
-        }
-
-        try {
-            validateTree(rendered);
-        } catch (error: any) {
-            if (!config.renderErrors) throw error;
-            res = render(() => <ErrorComponent error={error} />);
-        }
-            
-
-        return res;
+        return renderLegacy(rendered);
     } catch (error: any) {
         if (!config.renderErrors) throw error;
         return render(() => <ErrorComponent error={error} />);
     }
-}
+};
+
+export const renderLegacy = (
+    rendered: VNode
+): MessageCreateOptions => {
+    let content = "";
+    const embeds: EmbedBuilder[] = [];
+
+    for (const child of rendered.children) {
+        if (child === null || child === undefined) continue;
+
+        if (typeof child === "string" || typeof child === "number") {
+            content += String(child);
+        } else if (child.type === "Embed") {
+            embeds.push(renderEmbed(child));
+        } else if (child.type === "Description") {
+            content += extractText(child.children);
+        }
+    }
+
+    content = content.trim();
+
+    const buttons = extractButtons(rendered);
+    const dropdowns = extractDropdowns(rendered);
+
+    const components: any[] = [];
+
+    if (buttons.length > 0) {
+        components.push(
+            new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(...buttons)
+        );
+    }
+
+    if (dropdowns.length > 0) {
+        for (const menu of dropdowns) {
+            components.push(
+                new ActionRowBuilder<StringSelectMenuBuilder>()
+                    .addComponents(menu)
+            );
+        }
+    }
+
+    const res: MessageCreateOptions = {};
+
+    if (content) res.content = content;
+    if (embeds.length > 0) res.embeds = embeds;
+    if (components.length > 0) res.components = components;
+
+    try {
+        validateTree(rendered);
+    } catch (error: any) {
+        if (!config.renderErrors) throw error;
+        return render(() => <ErrorComponent error={error} />);
+    }
+
+    return res;
+};
+
+export const renderV2 = (
+    rendered: VNode
+): MessageCreateOptions => {
+    const components: any[] = [];
+
+    for (const child of rendered.children) {
+        if (child === null || child === undefined) continue;
+
+        if (child.type === "TextDisplay") {
+            components.push(
+                new TextDisplayBuilder()
+                    .setContent(extractText(child.children))
+            );
+        } else if (child.type === "Separator") {
+            components.push(
+                new SeparatorBuilder()
+            );
+        } else if (child.type === "Container") {
+            const container = new ContainerBuilder();
+
+            for (const nested of child.children) {
+                if (nested === null || nested === undefined) continue;
+
+                if (nested.type === "TextDisplay") {
+                    container.addTextDisplayComponents(
+                        new TextDisplayBuilder()
+                            .setContent(extractText(nested.children))
+                    );
+                } else if (nested.type === "Separator") {
+                    container.addSeparatorComponents(
+                        new SeparatorBuilder()
+                    );
+                } else if (nested.type === "Actions") {
+                    const buttons = extractButtons(nested);
+                    const dropdowns = extractDropdowns(nested);
+
+                    if (buttons.length > 0) {
+                        container.addActionRowComponents(
+                            new ActionRowBuilder<ButtonBuilder>()
+                                .addComponents(...buttons)
+                        );
+                    }
+
+                    for (const menu of dropdowns) {
+                        container.addActionRowComponents(
+                            new ActionRowBuilder<StringSelectMenuBuilder>()
+                                .addComponents(menu)
+                        );
+                    }
+                }
+            }
+
+            components.push(container);
+        } else if (child.type === "Actions") {
+            const buttons = extractButtons(child);
+            const dropdowns = extractDropdowns(child);
+
+            if (buttons.length > 0) {
+                components.push(
+                    new ActionRowBuilder<ButtonBuilder>()
+                        .addComponents(...buttons)
+                );
+            }
+
+            for (const menu of dropdowns) {
+                components.push(
+                    new ActionRowBuilder<StringSelectMenuBuilder>()
+                        .addComponents(menu)
+                );
+            }
+        }
+    }
+
+    const res: MessageCreateOptions = {
+        flags: MessageFlags.IsComponentsV2,
+        components,
+    };
+
+    try {
+        validateTree(rendered);
+    } catch (error: any) {
+        if (!config.renderErrors) throw error;
+        return render(() => <ErrorComponent error={error} />);
+    }
+
+    return res;
+};
 
 export const mount = async (
     component: () => VNode,
