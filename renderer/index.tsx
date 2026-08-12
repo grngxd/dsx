@@ -149,6 +149,11 @@ export const validateTree = (node: VNode, parentType?: string) => {
         throw new Error(`<Actions> can only be used inside <Message>`);
     }
 
+    // Actions can only be used inside <Actions>
+    if (["Button", "Dropdown"].includes(name) && parentType !== "Actions") {
+        throw new Error(`<${name}> can only be used inside <Actions>`);
+    }
+
     const children = (node.props as any).children;
     if (children) {
         const arr = Array.isArray(children) ? children : [children];
@@ -160,22 +165,45 @@ export const validateTree = (node: VNode, parentType?: string) => {
     }
 }
 
+const formatStack = (error: Error) => {
+    if (!error.stack) return "";
+
+    const lines = error.stack.split("\n").slice(1);
+
+    const filtered = lines.filter((line, i) => {
+        if (
+            line.includes("at validateTree") &&
+            i > 0 &&
+            lines[i - 1]?.includes("at validateTree")
+        ) {
+            return false;
+        }
+
+        return true;
+    });
+
+    return filtered.slice(0, 5).join("\n");
+};
+
 // meta
 const ErrorComponent = ({ error }: { error: Error }) => (
     <Message>
         <Embed color={"Red"}>
-            <Title>💢 DSX{error.cause ? `: ${error.cause}` : ""}</Title>
+            <Title>
+                💢 DSX{error.cause ? `: ${error.cause}` : ""}
+            </Title>
+
             <Description>
                 {[
-                    `Something went wrong while rendering the component.\n`,
+                    `something went wrong while rendering the component.\n`,
                     `${"```"}\n${error.message}\n${"```"}`,
                     error.stack
-                        ? `${"```"}\n${error.stack.split("\n").slice(1, 6).join("\n")}\n...[0;0m${"```"}`
-                        : '',
-                    `\n[see the docs](https://github.com/grngxd/dsx) for more info on this error.`
+                        ? `\n${"```"}\n${formatStack(error)}\n...${"```"}`
+                        : "",
+                    `\n[see the docs](https://github.com/grngxd/dsx) for more info on this error.`,
                 ]
-                .filter(Boolean)
-                .join("")}
+                    .filter(Boolean)
+                    .join("")}
             </Description>
         </Embed>
     </Message>
