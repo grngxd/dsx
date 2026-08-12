@@ -24,7 +24,7 @@ const bot = new Client({
     intents: ["Guilds", "GuildMessages", "MessageContent"],
 });
 
-bot.on("ready", async (b) => {
+bot.on("clientReady", async (b) => {
     console.log(b.user.tag);
 })
 

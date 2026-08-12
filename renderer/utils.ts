@@ -42,28 +42,31 @@ export const extractDropdowns = (root: VNode): StringSelectMenuBuilder[] => {
         if (node.type === "Dropdown") {
             const props = node.props as DropdownProps;
             const options: StringSelectMenuOptionBuilder[] = [];
+
             if (props.options) {
                 for (const option of props.options) {
-                    options.push(
-                        new StringSelectMenuOptionBuilder()
-                            .setLabel(option.label)
-                            .setDescription(option.description)
-                            .setValue(option.value)
-                    );
+                    const o = new StringSelectMenuOptionBuilder()
+                        .setLabel(option.label)
+                        .setDescription(option.description)
+                        .setValue(option.value)
+                        .setDefault(option.value === props.value);
+
+                    if (option.emoji) o.setEmoji(option.emoji);
+                    options.push(o);
                 }
             }
+
             const menu = new StringSelectMenuBuilder()
                 .setCustomId(String((props as any).id ?? ""))
                 .setPlaceholder(props.placeholder ?? "")
                 .addOptions(...options);
+                
             menus.push(menu);
         }
-        if (Array.isArray(node.children)) {
-            node.children.forEach(child => {
-                if (typeof child === "object" && child !== null) walk(child as VNode);
-            });
-        }
+        
+        if (Array.isArray(node.children)) node.children.forEach(child => { if (typeof child === "object" && child !== null) walk(child as VNode); });
     }
+
     walk(root);
     return menus;
 }
@@ -79,8 +82,9 @@ export const wireInteractions = (bot: Client) => {
 
         if (interaction.isStringSelectMenu()) {
             const id = Number(interaction.customId);
+            const value = interaction.values[0];
             const handler = getDropdownHandler(id, "onChange");
-            if (handler) handler(interaction.values[0]);
+            if (handler) handler(value);
             await interaction.deferUpdate();
         }
     });

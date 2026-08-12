@@ -10,7 +10,7 @@ const bot = new Client({
 // tell dsx to not show errors in discord (production mode)
 dsx({ renderErrors: false })
 
-bot.on("ready", async (b) => {
+bot.on("clientReady", async (b) => {
     console.log(b.user.tag);
 })
 
@@ -26,12 +26,14 @@ bot.on("messageCreate", async (message) => {
 
                     <Actions>
                         <Dropdown
+                            value={color.value as string}
                             options={
                                 [
                                     { 
                                         label: "Pink",
                                         value: "LuminousVividPink",
-                                        description: "This option changes the embed color to pink!"
+                                        description: "This option changes the embed color to pink!",
+                                        emoji: "🩷",
                                     },
                                     {
                                         label: "Blue",

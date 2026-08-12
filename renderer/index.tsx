@@ -95,25 +95,31 @@ export const mount = async (
 
     let { result: vnode, hooks, effects } = runComponent(component);
 
-    const initialMsg = render(() => vnode);
-    const sentMsg = await message(initialMsg);
+    let currentMsg = render(() => vnode);
+    const sentMsg = await message(currentMsg);
 
     for (const effect of effects) {
         effect();
     }
+
     for (const state of hooks) {
         state.subscribers.add(async () => {
             const comp = runComponent(component, hooks);
+
             vnode = comp.result;
             hooks = comp.hooks;
+
             const updatedMsg = render(() => vnode);
 
-            const sameComponents = JSON.stringify(updatedMsg.components) === JSON.stringify(initialMsg.components);
-            const sameContent = (updatedMsg.content ?? "") === (initialMsg.content ?? "");
-            const sameEmbeds = JSON.stringify(updatedMsg.embeds) === JSON.stringify(initialMsg.embeds);
-
+            const sameComponents = JSON.stringify(updatedMsg.components) === JSON.stringify(currentMsg.components);
+            const sameContent = (updatedMsg.content ?? "") === (currentMsg.content ?? "");
+            const sameEmbeds = JSON.stringify(updatedMsg.embeds) === JSON.stringify(currentMsg.embeds);
+            
             if (sameComponents && sameContent && sameEmbeds) return;
+
             await sentMsg.edit(toEditOptions(updatedMsg));
+
+            currentMsg = updatedMsg;
         });
     }
 }

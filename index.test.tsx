@@ -108,7 +108,7 @@ test("should be reactive with signal (will pass without TOKEN/CHANNEL in .env)",
       intents: ["Guilds", "GuildMessages", "MessageContent"],
     });
 
-    bot.on("ready", async () => {
+    bot.on("clientReady", async () => {
       try {
         const channel = await bot.channels.fetch(cid);
         if (!channel || !channel.isTextBased() || !channel.isSendable()) {
@@ -236,8 +236,8 @@ test("dropdown", () => {
         <Dropdown
           placeholder="Select an option"
           options={[
-            { label: "One", description: "First", value: "one" },
-            { label: "Two", description: "Second", value: "two" },
+            { emoji: "😀", label: "One", description: "First", value: "one" },
+            { default: true, label: "Two", description: "Second", value: "two" },
           ]}
         />
       </Embed>

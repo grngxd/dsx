@@ -110,8 +110,9 @@ export const getButtonHandler = (
 
 export type DropdownProps = DefaultProps & {
 	placeholder?: string
-	options?: Array<{ label: string; description: string; value: string }>;
+	options?: Array<{ emoji?: string, label: string, description: string, value: string }>;
 	onChange?: (value: string) => void;
+	value?: string;
 }
 
 const dropdownHandlers = new Map<number, Map<string, Function>>();
