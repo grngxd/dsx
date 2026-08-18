@@ -23,15 +23,32 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": [
+    "index.ts",
+    "types.ts",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "hooks/**/*.ts",
+    "hooks/**/*.tsx",
+    "renderer/**/*.ts",
+    "renderer/**/*.tsx",
+    "jsx-runtime/**/*.ts",
+    "jsx-runtime/**/*.tsx",
+    "examples/**/*.ts",
+    "examples/**/*.tsx",
+    "*.d.ts"
+  ],
   "exclude": [
     "node_modules",
     "dist",
+    "out",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "index.test.tsx",
     "bun.lockb",
     "bunfig.toml",
     "bun.lock",
     "bun.lock.json",
-    "**/*.d.ts",
-    "**/*.js",
+    "**/*.js"
   ]
 }

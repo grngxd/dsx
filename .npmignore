@@ -1,0 +1,12 @@
+examples/
+assets/
+node_modules/
+*.ts
+*.tsx
+*.log
+tsconfig.json
+bun.lock
+bun.lockb
+bunfig.toml
+.vscode/
+.github/

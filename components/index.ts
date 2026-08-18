@@ -112,9 +112,17 @@ export const getButtonHandler = (
 	return btnHandlers.get(id)?.get(event);
 };
 
+export type DropdownOption = {
+    emoji?: string;
+    label: string;
+    description: string;
+    value: string;
+    default?: boolean;
+};
+
 export type DropdownProps = DefaultProps & {
 	placeholder?: string
-	options?: Array<{ emoji?: string, label: string, description: string, value: string }>;
+	options?: DropdownOption[];
 	onChange?: (value: string) => void;
 	value?: string;
 }

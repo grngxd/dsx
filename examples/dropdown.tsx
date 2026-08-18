@@ -1,7 +1,7 @@
 import { Client, ColorResolvable } from "discord.js";
 import { Actions, Dropdown, Embed, Message, Title } from "../components";
+import { useSignal } from "../hooks";
 import { dsx, mount } from "../renderer";
-import { useSignal } from "hooks";
 
 const bot = new Client({
     intents: ["Guilds", "GuildMessages", "MessageContent"],

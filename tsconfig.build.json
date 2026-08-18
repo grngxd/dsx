@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "index.ts",
+    "types.ts",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "hooks/**/*.ts",
+    "hooks/**/*.tsx",
+    "renderer/**/*.ts",
+    "renderer/**/*.tsx",
+    "jsx-runtime/**/*.ts",
+    "jsx-runtime/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "out",
+    "examples",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "index.test.tsx",
+    "**/*.js"
+  ]
+}

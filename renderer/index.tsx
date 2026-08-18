@@ -1,4 +1,4 @@
-import {ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, ContainerBuilder, EmbedBuilder, FileBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, Message as DiscordMessage, MessageFlags, SeparatorBuilder, SectionBuilder, StringSelectMenuBuilder, TextDisplayBuilder, ThumbnailBuilder, type MessageCreateOptions } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, ContainerBuilder, EmbedBuilder, FileBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, Message as DiscordMessage, MessageFlags, SeparatorBuilder, SectionBuilder, StringSelectMenuBuilder, TextDisplayBuilder, ThumbnailBuilder, type MessageCreateOptions, InteractionResponse } from "discord.js";
 import { runComponent } from "../hooks/signal";
 import { VNode } from "../types";
 import { extractButtons, extractDropdowns, extractText, toEditOptions, wireInteractions } from "./utils";
@@ -392,7 +392,7 @@ export const mount = async (
      */
     message: (
         msg: MessageCreateOptions
-    ) => DiscordMessage<boolean> | Promise<DiscordMessage<boolean>>
+    ) => DiscordMessage<boolean> | Promise<DiscordMessage<boolean>> | InteractionResponse<boolean> | Promise<InteractionResponse<boolean>>
 ): Promise<void> => {
     if (!wiredBots.has(bot)) {
         wireInteractions(bot);
