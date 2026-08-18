@@ -1,4 +1,4 @@
-import { ColorResolvable, Message as DiscordMessage } from "discord.js";
+import { ButtonStyle, ColorResolvable, Message as DiscordMessage } from "discord.js";
 import { Component, VNode } from "../types";
 import { normalizeChildren } from "./utils";
 
@@ -83,9 +83,10 @@ export const Actions: Component<ActionsProps> = (
 };
 
 export type ButtonProps = DefaultProps & {
-	onClick?: (msg: DiscordMessage<true> | DiscordMessage<false>) => void;
-	style?: any;
+    onClick?: (msg: DiscordMessage<true> | DiscordMessage<false>) => void;
+    style?: ButtonStyle;
 };
+
 export const Button: Component<ButtonProps> = (props): VNode<ButtonProps> => {
 	const id = generate();
 	
@@ -150,21 +151,99 @@ export type TextDisplayProps = DefaultProps;
 
 export const TextDisplay: Component<TextDisplayProps> = (
     props
-): VNode<TextDisplayProps> => ({
-    type: "TextDisplay",
-    props,
-    children: normalizeChildren(props.children),
-});
+): VNode<TextDisplayProps> => {
+    return {
+        type: "TextDisplay",
+        props,
+        children: normalizeChildren(props.children),
+    };
+};
 
-export type SeparatorProps = DefaultProps;
+export type SeparatorProps = DefaultProps & {
+    divider?: boolean;
+    spacing?: 1 | 2;
+};
 
 export const Separator: Component<SeparatorProps> = (
     props
-): VNode<SeparatorProps> => ({
-    type: "Separator",
-    props,
-    children: normalizeChildren(props.children),
-});
+): VNode<SeparatorProps> => {
+    return {
+        type: "Separator",
+        props,
+        children: normalizeChildren(props.children),
+    };
+};
+
+export type ThumbnailProps = {
+    url: string;
+    description?: string;
+    spoiler?: boolean;
+};
+
+export const Thumbnail: Component<ThumbnailProps> = (
+    props
+): VNode<ThumbnailProps> => {
+    return {
+        type: "Thumbnail",
+        props,
+        children: [],
+    };
+};
+
+export type MediaProps = {
+    url: string;
+    description?: string;
+    spoiler?: boolean;
+};
+
+export const Media: Component<MediaProps> = (
+    props
+): VNode<MediaProps> => {
+    return {
+        type: "Media",
+        props,
+        children: [],
+    };
+};
+
+export type MediaGalleryProps = DefaultProps;
+
+export const MediaGallery: Component<MediaGalleryProps> = (
+    props
+): VNode<MediaGalleryProps> => {
+    return {
+        type: "MediaGallery",
+        props,
+        children: normalizeChildren(props.children),
+    };
+};
+
+export type FileProps = {
+    url: string;
+    spoiler?: boolean;
+};
+
+export const File: Component<FileProps> = (
+    props
+): VNode<FileProps> => {
+    return {
+        type: "File",
+        props,
+        children: [],
+    };
+};
+
+export type SectionProps = DefaultProps;
+
+export const Section: Component<SectionProps> = (
+    props
+): VNode<SectionProps> => {
+    return {
+        type: "Section",
+        props,
+        children: normalizeChildren(props.children),
+    };
+};
 
 export type ContainerProps = DefaultProps & {
     accentColor?: number;
@@ -173,8 +252,10 @@ export type ContainerProps = DefaultProps & {
 
 export const Container: Component<ContainerProps> = (
     props
-): VNode<ContainerProps> => ({
-    type: "Container",
-    props,
-    children: normalizeChildren(props.children),
-});
+): VNode<ContainerProps> => {
+    return {
+        type: "Container",
+        props,
+        children: normalizeChildren(props.children),
+    };
+};

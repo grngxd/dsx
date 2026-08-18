@@ -1,11 +1,11 @@
-import { ActionRowBuilder, ButtonBuilder, Client, ContainerBuilder, Message as DiscordMessage, EmbedBuilder, MessageFlags, PartialMessage, SeparatorBuilder, StringSelectMenuBuilder, TextDisplayBuilder, type MessageCreateOptions } from "discord.js";
+import {ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, ContainerBuilder, EmbedBuilder, FileBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, Message as DiscordMessage, MessageFlags, SeparatorBuilder, SectionBuilder, StringSelectMenuBuilder, TextDisplayBuilder, ThumbnailBuilder, type MessageCreateOptions } from "discord.js";
 import { runComponent } from "../hooks/signal";
 import { VNode } from "../types";
 import { extractButtons, extractDropdowns, extractText, toEditOptions, wireInteractions } from "./utils";
-const wiredBots = new WeakSet<Client>();
-
-import { Description, Embed, Message, reset, Title } from "../components";
+import {Description, Embed, Message, reset, Title, type ContainerProps, type FileProps, type MediaGalleryProps, type MediaProps, type SectionProps, type SeparatorProps, type TextDisplayProps, type ThumbnailProps, ButtonProps } from "../components";
 import { renderEmbed } from "./renderers";
+
+const wiredBots = new WeakSet<Client>();
 
 type DSXOptions = { renderErrors: boolean; }
 let config: DSXOptions = { renderErrors: true };
@@ -83,7 +83,7 @@ export const renderLegacy = (
     if (components.length > 0) res.components = components;
 
     try {
-        validateTree(rendered);
+        validateLegacy(rendered);
     } catch (error: any) {
         if (!config.renderErrors) throw error;
         return render(() => <ErrorComponent error={error} />);
@@ -105,12 +105,109 @@ export const renderV2 = (
                 new TextDisplayBuilder()
                     .setContent(extractText(child.children))
             );
+
         } else if (child.type === "Separator") {
-            components.push(
-                new SeparatorBuilder()
-            );
+            const props = child.props as SeparatorProps;
+
+            const separator = new SeparatorBuilder()
+                .setDivider(props.divider ?? true);
+
+            if (props.spacing !== undefined) {
+                separator.setSpacing(props.spacing);
+            }
+
+            components.push(separator);
+
+        } else if (child.type === "MediaGallery") {
+            const gallery = new MediaGalleryBuilder();
+
+            for (const media of child.children) {
+                if (media === null || media === undefined) continue;
+
+                const props = media.props as MediaProps;
+
+                const item = new MediaGalleryItemBuilder()
+                    .setURL(props.url);
+
+                if (props.description !== undefined) {
+                    item.setDescription(props.description);
+                }
+
+                if (props.spoiler !== undefined) {
+                    item.setSpoiler(props.spoiler);
+                }
+
+                gallery.addItems(item);
+            }
+
+            components.push(gallery);
+
+        } else if (child.type === "File") {
+            const props = child.props as FileProps;
+
+            const file = new FileBuilder()
+                .setURL(props.url);
+
+            if (props.spoiler !== undefined) {
+                file.setSpoiler(props.spoiler);
+            }
+
+            components.push(file);
+
+        } else if (child.type === "Section") {
+            const section = new SectionBuilder();
+
+            for (const nested of child.children) {
+                if (nested === null || nested === undefined) continue;
+
+                if (nested.type === "TextDisplay") {
+                    section.addTextDisplayComponents(
+                        new TextDisplayBuilder()
+                            .setContent(extractText(nested.children))
+                    );
+
+                } else if (nested.type === "Thumbnail") {
+                    const props = nested.props as ThumbnailProps;
+
+                    const thumbnail = new ThumbnailBuilder()
+                        .setURL(props.url);
+
+                    if (props.description !== undefined) {
+                        thumbnail.setDescription(props.description);
+                    }
+
+                    if (props.spoiler !== undefined) {
+                        thumbnail.setSpoiler(props.spoiler);
+                    }
+
+                    section.setThumbnailAccessory(thumbnail);
+
+                } else if (nested.type === "Button") {
+                    const props = nested.props as ButtonProps;
+
+                    const button = new ButtonBuilder()
+                        .setCustomId(String((props as any).id ?? ""))
+                        .setLabel(extractText(nested.children))
+                        .setStyle(props.style ?? ButtonStyle.Primary);
+
+                    section.setButtonAccessory(button);
+                }
+            }
+
+            components.push(section);
+
         } else if (child.type === "Container") {
+            const props = child.props as ContainerProps;
+
             const container = new ContainerBuilder();
+
+            if (props.accentColor !== undefined) {
+                container.setAccentColor(props.accentColor);
+            }
+
+            if (props.spoiler !== undefined) {
+                container.setSpoiler(props.spoiler);
+            }
 
             for (const nested of child.children) {
                 if (nested === null || nested === undefined) continue;
@@ -120,10 +217,112 @@ export const renderV2 = (
                         new TextDisplayBuilder()
                             .setContent(extractText(nested.children))
                     );
+
                 } else if (nested.type === "Separator") {
-                    container.addSeparatorComponents(
-                        new SeparatorBuilder()
-                    );
+                    const props = nested.props as SeparatorProps;
+
+                    const separator = new SeparatorBuilder()
+                        .setDivider(props.divider ?? true);
+
+                    if (props.spacing !== undefined) {
+                        separator.setSpacing(props.spacing);
+                    }
+
+                    container.addSeparatorComponents(separator);
+
+                } else if (nested.type === "Section") {
+                    const section = new SectionBuilder();
+
+                    for (const sectionChild of nested.children) {
+                        if (
+                            sectionChild === null ||
+                            sectionChild === undefined
+                        ) continue;
+
+                        if (sectionChild.type === "TextDisplay") {
+                            section.addTextDisplayComponents(
+                                new TextDisplayBuilder()
+                                    .setContent(
+                                        extractText(sectionChild.children)
+                                    )
+                            );
+
+                        } else if (sectionChild.type === "Thumbnail") {
+                            const props =
+                                sectionChild.props as ThumbnailProps;
+
+                            const thumbnail = new ThumbnailBuilder()
+                                .setURL(props.url);
+
+                            if (props.description !== undefined) {
+                                thumbnail.setDescription(
+                                    props.description
+                                );
+                            }
+
+                            if (props.spoiler !== undefined) {
+                                thumbnail.setSpoiler(props.spoiler);
+                            }
+
+                            section.setThumbnailAccessory(thumbnail);
+
+                        } else if (sectionChild.type === "Button") {
+                            const props =
+                                sectionChild.props as ButtonProps;
+
+                            const button = new ButtonBuilder()
+                                .setCustomId(
+                                    String((props as any).id ?? "")
+                                )
+                                .setLabel(
+                                    extractText(sectionChild.children)
+                                )
+                                .setStyle(
+                                    props.style ?? ButtonStyle.Primary
+                                );
+
+                            section.setButtonAccessory(button);
+                        }
+                    }
+
+                    container.addSectionComponents(section);
+
+                } else if (nested.type === "MediaGallery") {
+                    const gallery = new MediaGalleryBuilder();
+
+                    for (const media of nested.children) {
+                        if (media === null || media === undefined) continue;
+
+                        const props = media.props as MediaProps;
+
+                        const item = new MediaGalleryItemBuilder()
+                            .setURL(props.url);
+
+                        if (props.description !== undefined) {
+                            item.setDescription(props.description);
+                        }
+
+                        if (props.spoiler !== undefined) {
+                            item.setSpoiler(props.spoiler);
+                        }
+
+                        gallery.addItems(item);
+                    }
+
+                    container.addMediaGalleryComponents(gallery);
+
+                } else if (nested.type === "File") {
+                    const props = nested.props as FileProps;
+
+                    const file = new FileBuilder()
+                        .setURL(props.url);
+
+                    if (props.spoiler !== undefined) {
+                        file.setSpoiler(props.spoiler);
+                    }
+
+                    container.addFileComponents(file);
+
                 } else if (nested.type === "Actions") {
                     const buttons = extractButtons(nested);
                     const dropdowns = extractDropdowns(nested);
@@ -135,16 +334,19 @@ export const renderV2 = (
                         );
                     }
 
-                    for (const menu of dropdowns) {
-                        container.addActionRowComponents(
-                            new ActionRowBuilder<StringSelectMenuBuilder>()
-                                .addComponents(menu)
-                        );
+                    if (dropdowns.length > 0) {
+                        for (const menu of dropdowns) {
+                            container.addActionRowComponents(
+                                new ActionRowBuilder<StringSelectMenuBuilder>()
+                                    .addComponents(menu)
+                            );
+                        }
                     }
                 }
             }
 
             components.push(container);
+
         } else if (child.type === "Actions") {
             const buttons = extractButtons(child);
             const dropdowns = extractDropdowns(child);
@@ -156,11 +358,13 @@ export const renderV2 = (
                 );
             }
 
-            for (const menu of dropdowns) {
-                components.push(
-                    new ActionRowBuilder<StringSelectMenuBuilder>()
-                        .addComponents(menu)
-                );
+            if (dropdowns.length > 0) {
+                for (const menu of dropdowns) {
+                    components.push(
+                        new ActionRowBuilder<StringSelectMenuBuilder>()
+                            .addComponents(menu)
+                    );
+                }
             }
         }
     }
@@ -171,7 +375,7 @@ export const renderV2 = (
     };
 
     try {
-        validateTree(rendered);
+        validateV2(rendered);
     } catch (error: any) {
         if (!config.renderErrors) throw error;
         return render(() => <ErrorComponent error={error} />);
@@ -226,7 +430,7 @@ export const mount = async (
     }
 }
 
-export const validateTree = (node: VNode, parentType?: string) => {
+export const validateLegacy = (node: VNode, parentType?: string) => {
     const name = typeof node.type === "string" ? node.type : node.type?.name ?? "Unknown";
 
     // <Embed> must be a child of <Message>
@@ -261,25 +465,249 @@ export const validateTree = (node: VNode, parentType?: string) => {
         const arr = Array.isArray(children) ? children : [children];
         for (const child of arr) {
             if (typeof child === "object" && child !== null) {
-                validateTree(child, name);
+                validateLegacy(child, name);
             }
         }
     }
 }
 
+export const validateV2 = (node: VNode, parentType?: string) => {
+    const name = typeof node.type === "string"
+        ? node.type
+        : node.type?.name ?? "Unknown";
+
+    if (name === "Message" && !(node.props as any).v2) {
+        throw new Error(`<Message> must have the v2 prop for v2 messages`);
+    }
+
+    // <Container> can only be a child of <Message>
+    if (name === "Container" && parentType !== "Message") {
+        throw new Error(`<Container> must be a child of <Message>`);
+    }
+
+    // <TextDisplay> can be used inside <Message>, <Container>, or <Section>
+    if (
+        name === "TextDisplay" &&
+        !["Message", "Container", "Section"].includes(parentType ?? "")
+    ) {
+        throw new Error(
+            `<TextDisplay> can only be used inside <Message>, <Container> or <Section>`
+        );
+    }
+
+    // <Separator> can only be used inside <Message> or <Container>
+    if (
+        name === "Separator" &&
+        !["Message", "Container"].includes(parentType ?? "")
+    ) {
+        throw new Error(
+            `<Separator> can only be used inside <Message> or <Container>`
+        );
+    }
+
+    // <Section> can only be used inside <Message> or <Container>
+    if (
+        name === "Section" &&
+        !["Message", "Container"].includes(parentType ?? "")
+    ) {
+        throw new Error(
+            `<Section> can only be used inside <Message> or <Container>`
+        );
+    }
+
+    // <Thumbnail> can only be used inside <Section>
+    if (name === "Thumbnail" && parentType !== "Section") {
+        throw new Error(
+            `<Thumbnail> can only be used inside <Section>`
+        );
+    }
+
+    // <MediaGallery> can only be used inside <Message> or <Container>
+    if (
+        name === "MediaGallery" &&
+        !["Message", "Container"].includes(parentType ?? "")
+    ) {
+        throw new Error(
+            `<MediaGallery> can only be used inside <Message> or <Container>`
+        );
+    }
+
+    // <Media> can only be used inside <MediaGallery>
+    if (name === "Media" && parentType !== "MediaGallery") {
+        throw new Error(
+            `<Media> can only be used inside <MediaGallery>`
+        );
+    }
+
+    // <File> can only be used inside <Message> or <Container>
+    if (
+        name === "File" &&
+        !["Message", "Container"].includes(parentType ?? "")
+    ) {
+        throw new Error(
+            `<File> can only be used inside <Message> or <Container>`
+        );
+    }
+
+    // <Actions> can be used inside <Message> or <Container>
+    if (
+        name === "Actions" &&
+        !["Message", "Container"].includes(parentType ?? "")
+    ) {
+        throw new Error(
+            `<Actions> can only be used inside <Message> or <Container>`
+        );
+    }
+
+    // <Button> can be used inside <Actions> or as a Section accessory
+    if (
+        name === "Button" &&
+        !["Actions", "Section"].includes(parentType ?? "")
+    ) {
+        throw new Error(
+            `<Button> can only be used inside <Actions> or <Section>`
+        );
+    }
+
+    // <Dropdown> can only be used inside <Actions>
+    if (name === "Dropdown" && parentType !== "Actions") {
+        throw new Error(
+            `<Dropdown> can only be used inside <Actions>`
+        );
+    }
+
+    // <MediaGallery> can only contain <Media>
+    if (name === "MediaGallery") {
+        const children = (node.props as any).children;
+
+        if (children) {
+            const arr = Array.isArray(children)
+                ? children
+                : [children];
+
+            const invalid = arr.filter(
+                (child: any) =>
+                    child &&
+                    typeof child === "object" &&
+                    child.type !== "Media"
+            );
+
+            if (invalid.length > 0) {
+                throw new Error(
+                    `<MediaGallery> can only contain <Media>`
+                );
+            }
+        }
+    }
+
+    // <Section> can only contain TextDisplay + 1 accessory
+    if (name === "Section") {
+        const children = (node.props as any).children;
+
+        if (children) {
+            const arr = Array.isArray(children)
+                ? children
+                : [children];
+
+            const textDisplays = arr.filter(
+                (child: any) =>
+                    child &&
+                    typeof child === "object" &&
+                    child.type === "TextDisplay"
+            );
+
+            const accessories = arr.filter(
+                (child: any) =>
+                    child &&
+                    typeof child === "object" &&
+                    ["Button", "Thumbnail"].includes(child.type)
+            );
+
+            const invalid = arr.filter(
+                (child: any) =>
+                    child &&
+                    typeof child === "object" &&
+                    !["TextDisplay", "Button", "Thumbnail"].includes(child.type)
+            );
+
+            if (textDisplays.length === 0) {
+                throw new Error(
+                    `<Section> must contain at least one <TextDisplay>`
+                );
+            }
+
+            if (accessories.length > 1) {
+                throw new Error(
+                    `<Section> can only have one accessory`
+                );
+            }
+
+            if (invalid.length > 0) {
+                throw new Error(
+                    `<${invalid[0].type}> cannot be used inside <Section>`
+                );
+            }
+        }
+    }
+
+    // <Container> can only contain valid V2 children
+    if (name === "Container") {
+        const children = (node.props as any).children;
+
+        if (children) {
+            const arr = Array.isArray(children)
+                ? children
+                : [children];
+
+            const allowed = [
+                "TextDisplay",
+                "Separator",
+                "Section",
+                "MediaGallery",
+                "File",
+                "Actions",
+            ];
+
+            const invalid = arr.find(
+                (child: any) =>
+                    child &&
+                    typeof child === "object" &&
+                    !allowed.includes(child.type)
+            );
+
+            if (invalid) {
+                throw new Error(
+                    `<${invalid.type}> cannot be used inside <Container>`
+                );
+            }
+        }
+    }
+
+    const children = (node.props as any).children;
+
+    if (children) {
+        const arr = Array.isArray(children)
+            ? children
+            : [children];
+
+        for (const child of arr) {
+            if (typeof child === "object" && child !== null) {
+                validateV2(child, name);
+            }
+        }
+    }
+};
+
 const formatStack = (error: Error) => {
     if (!error.stack) return "";
 
     const lines = error.stack.split("\n").slice(1);
-
     const filtered = lines.filter((line, i) => {
         if (
-            line.includes("at validateTree") &&
+            (line.includes("at validateLegacy") || line.includes("at validateV2")) &&
             i > 0 &&
-            lines[i - 1]?.includes("at validateTree")
-        ) {
-            return false;
-        }
+            (lines[i - 1]?.includes("at validateLegacy") || lines[i - 1]?.includes("at validateV2"))
+        ) return false;
 
         return true;
     });
