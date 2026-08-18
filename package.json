@@ -1,25 +1,21 @@
 {
   "name": "dsxjs",
   "description": "a lightweight library for building reactive with discord.js & bun (or node)",
-  "version": "0.2.0",
-
+  "version": "0.2.1",
   "author": "grng",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/grngxd/dsx"
   },
-
   "type": "module",
   "main": "out/index.js",
   "types": "out/index.d.ts",
-
   "files": [
     "out",
     "README.md",
     "LICENSE"
   ],
-
   "exports": {
     ".": "./out/index.js",
     "./components": "./out/components/index.js",
@@ -28,7 +24,6 @@
     "./jsx-runtime": "./out/jsx-runtime/index.js",
     "./types": "./out/types.js"
   },
-
   "keywords": [
     "discord.js",
     "discord",
@@ -40,7 +35,6 @@
     "url": "https://github.com/grngxd/dsx/issues"
   },
   "sideEffects": false,
-
   "scripts": {
     "clean": "bunx rimraf out",
     "build": "bunx tsc --project tsconfig.build.json",
@@ -51,7 +45,6 @@
     "release:minor": "bunx npm version minor && bun publish",
     "release:major": "bunx npm version major && bun publish"
   },
-
   "devDependencies": {
     "@types/bun": "latest"
   },
