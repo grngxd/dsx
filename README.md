@@ -15,14 +15,30 @@
 <div>
 
 ```tsx
-import { ButtonStyle, Client } from "discord.js";
 import { Actions, Button, Description, Embed, Message, Title } from "dsxjs/components";
 import { useSignal } from "dsxjs/hooks";
-import { mount } from "dsxjs/renderer";
+import { component, dsx, mount } from "dsxjs/renderer";
+import { ButtonStyle, Client } from "discord.js";
 
 const bot = new Client({
     intents: ["Guilds", "GuildMessages", "MessageContent"],
 });
+
+dsx(bot);
+
+// create top-level component with the qwik-like "component" fn
+const Counter = component(() => {
+    const count = useSignal(0);
+    return (
+        <Message>
+            <Actions>
+                <Button onClick={() => count.value++}>+</Button>
+                <Button style={ButtonStyle.Secondary} onClick={() => count.value = 0}>{count.value}</Button>
+                <Button onClick={() => count.value--}>-</Button>
+            </Actions>
+        </Message>
+    )
+})
 
 bot.on("clientReady", async (b) => {
     console.log(b.user.tag);
@@ -30,21 +46,9 @@ bot.on("clientReady", async (b) => {
 
 bot.on("messageCreate", async (message) => {
     if (message.content === "counter") {
-        const Component = () => {
-            const count = useSignal(0);
-            return (
-                <Message>
-                    <Actions>
-                        <Button onClick={() => count.value++}>+</Button>
-                        <Button style={ButtonStyle.Secondary} onClick={() => count.value = 0}>{count.value}</Button>
-                        <Button onClick={() => count.value--}>-</Button>
-                    </Actions>
-                </Message>
-            )
-        }
-
+        // render the component into a discord message and send it
         await mount(
-            Component,
+            Counter,
             bot,
             mounted => message.reply(mounted)
         )

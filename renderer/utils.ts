@@ -1,43 +1,62 @@
-import { ButtonBuilder, ButtonStyle, Client, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, type Interaction, type MessageCreateOptions, type MessageEditOptions } from "discord.js";
+import { ButtonBuilder, ButtonStyle, Client, Message as DiscordMessage, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, type MessageCreateOptions, type MessageEditOptions } from "discord.js";
+import { runComponent } from "hooks/signal";
+import { render } from "renderer";
 import { ButtonProps, DropdownProps, getButtonHandler, getDropdownHandler } from "../components";
 import { VNode } from "../types";
+import { components, decodeResume, encodeResume } from "./resumability";
 
-export const extractText = (nodes: Array<VNode | string | number>): string => {
+export const translateText = (nodes: Array<VNode | string | number>): string => {
     return nodes.map(node =>
         typeof node === "string" || typeof node === "number"
             ? String(node)
             : node && typeof node === "object" && "children" in node
-                ? extractText(node.children)
+                ? translateText(node.children)
                 : ""
     ).join("");
-}
+};
 
-export const extractButtons = (vnode: VNode<ButtonProps>): ButtonBuilder[] => {
+export const translateButtons = (
+    vnode: VNode<ButtonProps>,
+    component: number,
+    hooks: unknown[],
+): ButtonBuilder[] => {
     const buttons: ButtonBuilder[] = [];
-    
+
     const walk = (node: VNode) => {
         if (node.type === "Button") {
             const props = node.props as ButtonProps;
+            const id = String((props as any).id ?? "");
+
             buttons.push(
                 new ButtonBuilder()
-                    .setCustomId(String((props as any).id ?? ""))
-                    .setLabel(extractText(node.children))
+                    .setCustomId(
+                        encodeResume(component, id, hooks)
+                    )
+                    .setLabel(translateText(node.children))
                     .setStyle(props.style ?? ButtonStyle.Primary)
             );
         }
+
         if (Array.isArray(node.children)) {
             node.children.forEach(child => {
-                if (typeof child === "object" && child !== null) walk(child as VNode);
+                if (typeof child === "object" && child !== null) {
+                    walk(child as VNode);
+                }
             });
         }
-    }
+    };
 
     walk(vnode);
     return buttons;
-}
+};
 
-export const extractDropdowns = (root: VNode): StringSelectMenuBuilder[] => {
+export const translateDropdowns = (
+    root: VNode,
+    component: number,
+    hooks: unknown[],
+): StringSelectMenuBuilder[] => {
     const menus: StringSelectMenuBuilder[] = [];
+
     const walk = (node: VNode) => {
         if (node.type === "Dropdown") {
             const props = node.props as DropdownProps;
@@ -51,44 +70,174 @@ export const extractDropdowns = (root: VNode): StringSelectMenuBuilder[] => {
                         .setValue(option.value)
                         .setDefault(option.value === props.value);
 
-                    if (option.emoji) o.setEmoji(option.emoji);
+                    if (option.emoji) {
+                        o.setEmoji(option.emoji);
+                    }
+
                     options.push(o);
                 }
             }
 
+            const id = String((props as any).id ?? "");
+
             const menu = new StringSelectMenuBuilder()
-                .setCustomId(String((props as any).id ?? ""))
+                .setCustomId(
+                    encodeResume(component, id, hooks)
+                )
                 .setPlaceholder(props.placeholder ?? "")
                 .addOptions(...options);
-                
+
             menus.push(menu);
         }
-        
-        if (Array.isArray(node.children)) node.children.forEach(child => { if (typeof child === "object" && child !== null) walk(child as VNode); });
-    }
+
+        if (Array.isArray(node.children)) {
+            node.children.forEach(child => {
+                if (typeof child === "object" && child !== null) {
+                    walk(child as VNode);
+                }
+            });
+        }
+    };
 
     walk(root);
     return menus;
-}
+};
+
+const runtimes = new Map<string, {
+    component: () => VNode;
+    componentId: number;
+    hooks: any[];
+    message: DiscordMessage<boolean>;
+    rerender: () => Promise<void>;
+}>();
 
 export const wireInteractions = (bot: Client) => {
-    bot.on("interactionCreate", async (interaction: Interaction) => {
+    bot.on("interactionCreate", async interaction => {
+        if (
+            !interaction.isButton() &&
+            !interaction.isStringSelectMenu()
+        ) {
+            return;
+        }
+
+        const messageId = interaction.message.id;
+        const resume = decodeResume(interaction.customId);
+
+        if (!resume) {
+            await interaction.deferUpdate();
+            return;
+        }
+
+        const [componentId, id, values] = resume;
+
+        let runtime = runtimes.get(messageId);
+
+        if (!runtime) {
+            const component = components.get(componentId);
+
+            if (!component) {
+                await interaction.deferUpdate();
+                return;
+            }
+
+            const restored = runComponent(
+                component,
+                undefined,
+                values,
+            );
+
+            runtime = {
+                component,
+                componentId,
+                hooks: restored.hooks,
+                message: interaction.message,
+                rerender: async () => {},
+            };
+
+            const subscribed = new Set<any>();
+
+            const bind = () => {
+                for (const state of runtime!.hooks) {
+                    if (subscribed.has(state)) continue;
+
+                    subscribed.add(state);
+                    state.subscribers.add(runtime!.rerender);
+                }
+            };
+
+            runtime.rerender = async () => {
+                const next = runComponent(
+                    runtime!.component,
+                    runtime!.hooks,
+                );
+
+                runtime!.hooks = next.hooks;
+
+                const updatedMsg = render(
+                    next.result,
+                    runtime!.componentId,
+                    runtime!.hooks.map(
+                        state => state.value
+                    ),
+                );
+
+                await runtime!.message.edit(
+                    toEditOptions(updatedMsg),
+                );
+
+                for (const effect of next.effects) {
+                    await effect();
+                }
+
+                bind();
+            };
+
+            for (const effect of restored.effects) {
+                await effect();
+            }
+
+            bind();
+
+            runtimes.set(messageId, runtime);
+        }
+
+        const current = runComponent(
+            runtime.component,
+            runtime.hooks,
+        );
+
+        runtime.hooks = current.hooks;
+
+        for (const effect of current.effects) {
+            await effect();
+        }
+
         if (interaction.isButton()) {
-            const handler = getButtonHandler(interaction.customId, "onClick");
-            if (handler) handler();
-            await interaction.deferUpdate();
+            const handler = getButtonHandler(
+                id,
+                "onClick",
+            );
+
+            if (handler) {
+                await handler(interaction.message);
+            }
+        } else {
+            const handler = getDropdownHandler(
+                id,
+                "onChange",
+            );
+
+            if (handler) {
+                await handler(interaction.values[0]);
+            }
         }
 
-        if (interaction.isStringSelectMenu()) {
-            const value = interaction.values[0];
-            const handler = getDropdownHandler(interaction.customId, "onChange");
-            if (handler) handler(value);
-            await interaction.deferUpdate();
-        }
+        await interaction.deferUpdate();
     });
-}
+};
 
-export const toEditOptions = (create: MessageCreateOptions): MessageEditOptions => {
-    // const { content, embeds, components, files, flags, allowedMentions, enforceNonce, forward, nonce } = create;
+export const toEditOptions = (
+    create: MessageCreateOptions
+): MessageEditOptions => {
     return { ...create } as MessageEditOptions;
-}
+};

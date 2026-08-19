@@ -1,65 +1,78 @@
 import { Client, ColorResolvable } from "discord.js";
-import { Actions, Dropdown, Embed, Message, Title } from "../components";
+import {
+    Actions,
+    Dropdown,
+    Embed,
+    Message,
+    Title,
+} from "../components";
 import { useSignal } from "../hooks";
-import { dsx, mount } from "../renderer";
+import { component, dsx, mount } from "../renderer";
 
 const bot = new Client({
     intents: ["Guilds", "GuildMessages", "MessageContent"],
 });
-
 // tell dsx to not show errors in discord (production mode)
-dsx({ renderErrors: false })
+dsx(bot, { renderErrors: false });
 
-bot.on("clientReady", async (b) => {
+const Color = component(() => {
+    const color = useSignal<ColorResolvable>(
+        "LuminousVividPink"
+    );
+
+    return (
+        <Message>
+            <Embed color={color.value}>
+                <Title>
+                    {
+                        color.value === "LuminousVividPink"
+                            ? "Pink"
+                            : "Blue"
+                    }
+                </Title>
+            </Embed>
+
+            <Actions>
+                <Dropdown
+                    value={color.value as string}
+                    options={[
+                        {
+                            label: "Pink",
+                            value: "LuminousVividPink",
+                            description:
+                                "This option changes the embed color to pink!",
+                            emoji: "🩷",
+                        },
+                        {
+                            label: "Blue",
+                            value: "Blurple",
+                            description:
+                                "This option changes the embed color to blue!",
+                        },
+                    ]}
+                    onChange={value => {
+                        color.value =
+                            value as ColorResolvable;
+                    }}
+                    placeholder="Select an option"
+                />
+            </Actions>
+        </Message>
+    );
+});
+
+bot.on("clientReady", async b => {
     console.log(b.user.tag);
-})
+});
 
-bot.on("messageCreate", async (message) => {
-    if (message.content === "color") {
-        const Component = () => {
-            const color = useSignal<ColorResolvable>("LuminousVividPink");
-            return (
-                <Message>
-                    <Embed color={color.value}>
-                        <Title>{color.value === "LuminousVividPink" ? "Pink" : "Blue"}</Title>
-                    </Embed>
+bot.on("messageCreate", async message => {
+    if (message.content !== "color") return;
 
-                    <Actions>
-                        <Dropdown
-                            value={color.value as string}
-                            options={
-                                [
-                                    { 
-                                        label: "Pink",
-                                        value: "LuminousVividPink",
-                                        description: "This option changes the embed color to pink!",
-                                        emoji: "🩷",
-                                    },
-                                    {
-                                        label: "Blue",
-                                        value: "Blurple",
-                                        description: "This option changes the embed color to blue!"
-                                    }
-                                ]
-                            }
-
-                            onChange={(value) => {
-                                color.value = value as ColorResolvable;
-                            }}
-
-                            placeholder="Select an option"
-                        />
-                    </Actions>
-                </Message>
-            )
-        }
-
-        await mount(
-            Component,
-            bot,
-            async (m) => message.reply(m)
-        )
-    }
+    await mount(
+        Color,
+        bot,
+        mounted => message.reply(mounted)
+    );
 });
 
 bot.login(process.env.TOKEN).catch(console.error);

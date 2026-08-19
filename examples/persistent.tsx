@@ -1,16 +1,30 @@
-import { ButtonStyle, Client } from "discord.js";
+import { Client } from "discord.js";
 import {
     Actions,
     Button,
-    Embed,
     Message,
-    Title,
 } from "../components";
 import { useSignal } from "../hooks";
-import { mount } from "../renderer";
+import { component, dsx, mount } from "../renderer";
 
 const bot = new Client({
     intents: ["Guilds", "GuildMessages", "MessageContent"],
+});
+
+dsx(bot);
+
+const App = component(() => {
+    const count = useSignal(7);
+
+    return (
+        <Message>
+            <Actions>
+                <Button onClick={() => count.value++}>
+                    {count.value}+
+                </Button>
+            </Actions>
+        </Message>
+    );
 });
 
 bot.on("clientReady", async b => {
@@ -20,46 +34,8 @@ bot.on("clientReady", async b => {
 bot.on("messageCreate", async message => {
     if (message.content !== "counter") return;
 
-    const Component = () => {
-        const count = useSignal(0);
-
-        return (
-            <Message>
-                <Embed color="Blurple">
-                    <Title>
-                        Counter
-                    </Title>
-
-                    {count.value}
-                </Embed>
-
-                <Actions>
-                    <Button
-                        id="counter:increment"
-                        style={ButtonStyle.Primary}
-                        onClick={() => {
-                            count.value++;
-                        }}
-                    >
-                        +
-                    </Button>
-                    
-                    {/* shouldnt survive restarts */}
-                    <Button
-                        style={ButtonStyle.Secondary}
-                        onClick={() => {
-                            count.value--;
-                        }}
-                    >
-                        -
-                    </Button>
-                </Actions>
-            </Message>
-        );
-    };
-
     await mount(
-        Component,
+        App,
         bot,
         mounted => message.reply(mounted)
     );

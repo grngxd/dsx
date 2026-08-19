@@ -36,18 +36,39 @@ export function useComputed<T>(compute: () => T): Signal<T> {
 }
 
 
-export function runComponent<T>(component: () => T, hooks?: State<any>[]) {
+export function runComponent<T>(
+    component: () => T,
+    hooks?: State<any>[],
+    values?: unknown[],
+) {
     const prevHooks = hookContext.currentHooks;
     const prevIndex = hookContext.hookIndex;
     const prevEffects = hookContext.currentEffects;
-    hookContext.currentHooks = hooks ? [...hooks] : [];
+
+    hookContext.currentHooks = values
+        ? values.map(value => ({
+            value,
+            subscribers: new Set(),
+        }))
+        : hooks
+            ? [...hooks]
+            : [];
+
     hookContext.hookIndex = 0;
     hookContext.currentEffects = [];
+
     const result = component();
+
     const usedHooks = hookContext.currentHooks!;
     const usedEffects = hookContext.currentEffects!;
+
     hookContext.currentHooks = prevHooks;
     hookContext.hookIndex = prevIndex;
     hookContext.currentEffects = prevEffects;
-    return { result, hooks: usedHooks, effects: usedEffects };
+
+    return {
+        result,
+        hooks: usedHooks,
+        effects: usedEffects,
+    };
 }

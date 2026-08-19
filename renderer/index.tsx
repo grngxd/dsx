@@ -3,40 +3,57 @@ import { ButtonProps, Description, Embed, Message, reset, Title, type ContainerP
 import { runComponent } from "../hooks/signal";
 import { VNode } from "../types";
 import { renderEmbed } from "./renderers";
-import { extractButtons, extractDropdowns, extractText, toEditOptions, wireInteractions } from "./utils";
+import {
+    encodeResume,
+    getComponentId,
+} from "./resumability";
+import { toEditOptions, translateButtons, translateDropdowns, translateText, wireInteractions } from "./utils";
 
 const wiredBots = new WeakSet<Client>();
 
 type DSXOptions = { renderErrors: boolean; }
 let config: DSXOptions = { renderErrors: true };
 
-export function dsx(options: Partial<DSXOptions>) {
-    config = { ...config, ...options };
+export function dsx(bot: Client, options?: Partial<DSXOptions>) {
+    if (options) config = { ...config, ...options };
+
+    if (!wiredBots.has(bot)) {
+        wireInteractions(bot);
+        wiredBots.add(bot);
+    }
 }
 
-export const render = (component: () => VNode): MessageCreateOptions => {
+export const render = (
+    rendered: VNode,
+    component: number,
+    hooks: unknown[],
+): MessageCreateOptions => {
     try {
         reset();
-
-        const rendered = component();
 
         if (rendered.type !== "Message") {
             throw new Error("Root element must be <Message>");
         }
 
         if ((rendered.props as any).v2) {
-            return renderV2(rendered);
+            return renderV2(rendered, component, hooks);
         }
 
-        return renderLegacy(rendered);
+        return renderLegacy(rendered, component, hooks);
     } catch (error: any) {
         if (!config.renderErrors) throw error;
-        return render(() => <ErrorComponent error={error} />);
+        return render(
+            <ErrorComponent error={error} />,
+            component,
+            hooks,
+        );
     }
 };
 
 export const renderLegacy = (
-    rendered: VNode
+    rendered: VNode,
+    component: number,
+    hooks: unknown[],
 ): MessageCreateOptions => {
     let content = "";
     const embeds: EmbedBuilder[] = [];
@@ -49,14 +66,23 @@ export const renderLegacy = (
         } else if (child.type === "Embed") {
             embeds.push(renderEmbed(child));
         } else if (child.type === "Description") {
-            content += extractText(child.children);
+            content += translateText(child.children);
         }
     }
 
     content = content.trim();
 
-    const buttons = extractButtons(rendered);
-    const dropdowns = extractDropdowns(rendered);
+    const buttons = translateButtons(
+        rendered,
+        component,
+        hooks,
+    );
+
+    const dropdowns = translateDropdowns(
+        rendered,
+        component,
+        hooks,
+    );
 
     const components: any[] = [];
 
@@ -86,14 +112,20 @@ export const renderLegacy = (
         validateLegacy(rendered);
     } catch (error: any) {
         if (!config.renderErrors) throw error;
-        return render(() => <ErrorComponent error={error} />);
+        return render(
+            <ErrorComponent error={error} />,
+            component,
+            hooks,
+        );
     }
 
     return res;
 };
 
 export const renderV2 = (
-    rendered: VNode
+    rendered: VNode,
+    component: number,
+    hooks: unknown[]
 ): MessageCreateOptions => {
     const components: any[] = [];
 
@@ -103,7 +135,7 @@ export const renderV2 = (
         if (child.type === "TextDisplay") {
             components.push(
                 new TextDisplayBuilder()
-                    .setContent(extractText(child.children))
+                    .setContent(translateText(child.children))
             );
 
         } else if (child.type === "Separator") {
@@ -163,7 +195,7 @@ export const renderV2 = (
                 if (nested.type === "TextDisplay") {
                     section.addTextDisplayComponents(
                         new TextDisplayBuilder()
-                            .setContent(extractText(nested.children))
+                            .setContent(translateText(nested.children))
                     );
 
                 } else if (nested.type === "Thumbnail") {
@@ -186,8 +218,14 @@ export const renderV2 = (
                     const props = nested.props as ButtonProps;
 
                     const button = new ButtonBuilder()
-                        .setCustomId(String((props as any).id ?? ""))
-                        .setLabel(extractText(nested.children))
+                        .setCustomId(
+                            encodeResume(
+                                component,
+                                String((props as any).id ?? ""),
+                                hooks,
+                            )
+                        )
+                        .setLabel(translateText(nested.children))
                         .setStyle(props.style ?? ButtonStyle.Primary);
 
                     section.setButtonAccessory(button);
@@ -215,7 +253,7 @@ export const renderV2 = (
                 if (nested.type === "TextDisplay") {
                     container.addTextDisplayComponents(
                         new TextDisplayBuilder()
-                            .setContent(extractText(nested.children))
+                            .setContent(translateText(nested.children))
                     );
 
                 } else if (nested.type === "Separator") {
@@ -243,7 +281,7 @@ export const renderV2 = (
                             section.addTextDisplayComponents(
                                 new TextDisplayBuilder()
                                     .setContent(
-                                        extractText(sectionChild.children)
+                                        translateText(sectionChild.children)
                                     )
                             );
 
@@ -267,15 +305,18 @@ export const renderV2 = (
                             section.setThumbnailAccessory(thumbnail);
 
                         } else if (sectionChild.type === "Button") {
-                            const props =
-                                sectionChild.props as ButtonProps;
+                            const props = sectionChild.props as ButtonProps;
 
                             const button = new ButtonBuilder()
                                 .setCustomId(
-                                    String((props as any).id ?? "")
+                                    encodeResume(
+                                        component,
+                                        String((props as any).id ?? ""),
+                                        hooks,
+                                    )
                                 )
                                 .setLabel(
-                                    extractText(sectionChild.children)
+                                    translateText(sectionChild.children)
                                 )
                                 .setStyle(
                                     props.style ?? ButtonStyle.Primary
@@ -324,8 +365,8 @@ export const renderV2 = (
                     container.addFileComponents(file);
 
                 } else if (nested.type === "Actions") {
-                    const buttons = extractButtons(nested);
-                    const dropdowns = extractDropdowns(nested);
+                    const buttons = translateButtons(nested, component, hooks);
+                    const dropdowns = translateDropdowns(nested, component, hooks);
 
                     if (buttons.length > 0) {
                         container.addActionRowComponents(
@@ -348,8 +389,8 @@ export const renderV2 = (
             components.push(container);
 
         } else if (child.type === "Actions") {
-            const buttons = extractButtons(child);
-            const dropdowns = extractDropdowns(child);
+            const buttons = translateButtons(child, component, hooks);
+            const dropdowns = translateDropdowns(child, component, hooks);
 
             if (buttons.length > 0) {
                 components.push(
@@ -378,7 +419,11 @@ export const renderV2 = (
         validateV2(rendered);
     } catch (error: any) {
         if (!config.renderErrors) throw error;
-        return render(() => <ErrorComponent error={error} />);
+        return render(
+            <ErrorComponent error={error} />,
+            component,
+            hooks,
+        );
     }
 
     return res;
@@ -392,16 +437,31 @@ export const mount = async (
      */
     message: (
         msg: MessageCreateOptions
-    ) => DiscordMessage<boolean> | Promise<DiscordMessage<boolean>> | InteractionResponse<boolean> | Promise<InteractionResponse<boolean>>
+    ) => DiscordMessage<boolean>
+        | Promise<DiscordMessage<boolean>>
+        | InteractionResponse<boolean>
+        | Promise<InteractionResponse<boolean>>,
+    values?: unknown[],
 ): Promise<void> => {
-    if (!wiredBots.has(bot)) {
-        wireInteractions(bot);
-        wiredBots.add(bot);
+    const componentId = getComponentId(component);
+
+    if (componentId === undefined) {
+        throw new Error(
+            "This component is not resumable. Wrap it with component()."
+        );
     }
 
-    let { result: vnode, hooks, effects } = runComponent(component);
+    let { result: vnode, hooks, effects } = runComponent(
+        component,
+        undefined,
+        values,
+    );
 
-    let currentMsg = render(() => vnode);
+    let currentMsg = render(
+        vnode,
+        componentId,
+        hooks.map(state => state.value),
+    );
     const sentMsg = await message(currentMsg);
 
     for (const effect of effects) {
@@ -415,7 +475,11 @@ export const mount = async (
             vnode = comp.result;
             hooks = comp.hooks;
 
-            const updatedMsg = render(() => vnode);
+            const updatedMsg = render(
+                vnode,
+                componentId,
+                hooks.map(state => state.value),
+            );
 
             const sameComponents = JSON.stringify(updatedMsg.components) === JSON.stringify(currentMsg.components);
             const sameContent = (updatedMsg.content ?? "") === (currentMsg.content ?? "");
@@ -738,3 +802,6 @@ const ErrorComponent = ({ error }: { error: Error }) => (
         </Embed>
     </Message>
 );
+
+export { component } from "./resumability";
+

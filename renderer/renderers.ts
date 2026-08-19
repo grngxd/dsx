@@ -1,7 +1,7 @@
 import { DescriptionProps, EmbedProps, FieldsProps, TitleProps } from "components";
 import { EmbedBuilder } from "discord.js";
 import { VNode } from "types";
-import { extractText } from "./utils";
+import { translateText } from "./utils";
 
 export const renderEmbed = (v: VNode<EmbedProps>): EmbedBuilder => {
     const embed = new EmbedBuilder();
@@ -16,12 +16,12 @@ export const renderEmbed = (v: VNode<EmbedProps>): EmbedBuilder => {
 
         if (child.type === "Title") {
             const title = child as VNode<TitleProps>;
-            embed.setTitle(extractText(title.children));
+            embed.setTitle(translateText(title.children));
         }
 
         if (child.type === "Description") {
             const description = child as VNode<DescriptionProps>;
-            embed.setDescription(extractText(description.children));
+            embed.setDescription(translateText(description.children));
         }
 
         if (child.type === "Fields") {
@@ -35,8 +35,8 @@ export const renderEmbed = (v: VNode<EmbedProps>): EmbedBuilder => {
                 if (!value) throw new Error("Field must have a <Description> child");
 
                 embed.addFields({
-                    name: name ? extractText(name.children) : "",
-                    value: value ? extractText(value.children) : "",
+                    name: name ? translateText(name.children) : "",
+                    value: value ? translateText(value.children) : "",
                     inline: field.props.inline ?? false,
                 });
             }
