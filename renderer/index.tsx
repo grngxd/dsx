@@ -1,9 +1,9 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, ContainerBuilder, EmbedBuilder, FileBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, Message as DiscordMessage, MessageFlags, SeparatorBuilder, SectionBuilder, StringSelectMenuBuilder, TextDisplayBuilder, ThumbnailBuilder, type MessageCreateOptions, InteractionResponse } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, ContainerBuilder, Message as DiscordMessage, EmbedBuilder, FileBuilder, InteractionResponse, MediaGalleryBuilder, MediaGalleryItemBuilder, MessageFlags, SectionBuilder, SeparatorBuilder, StringSelectMenuBuilder, TextDisplayBuilder, ThumbnailBuilder, type MessageCreateOptions } from "discord.js";
+import { ButtonProps, Description, Embed, Message, reset, Title, type ContainerProps, type FileProps, type MediaProps, type SeparatorProps, type ThumbnailProps } from "../components";
 import { runComponent } from "../hooks/signal";
 import { VNode } from "../types";
-import { extractButtons, extractDropdowns, extractText, toEditOptions, wireInteractions } from "./utils";
-import {Description, Embed, Message, reset, Title, type ContainerProps, type FileProps, type MediaGalleryProps, type MediaProps, type SectionProps, type SeparatorProps, type TextDisplayProps, type ThumbnailProps, ButtonProps } from "../components";
 import { renderEmbed } from "./renderers";
+import { extractButtons, extractDropdowns, extractText, toEditOptions, wireInteractions } from "./utils";
 
 const wiredBots = new WeakSet<Client>();
 

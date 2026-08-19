@@ -3,7 +3,7 @@ import { Component, VNode } from "../types";
 import { normalizeChildren } from "./utils";
 
 export let cid = 0;
-const generate = () => cid++;
+const generate = () => `${cid++}`;
 export const reset = () => cid = 0;
 
 export type DefaultProps = {
@@ -83,12 +83,13 @@ export const Actions: Component<ActionsProps> = (
 };
 
 export type ButtonProps = DefaultProps & {
+	id?: string;
     onClick?: (msg: DiscordMessage<true> | DiscordMessage<false>) => void;
     style?: ButtonStyle;
 };
 
 export const Button: Component<ButtonProps> = (props): VNode<ButtonProps> => {
-	const id = generate();
+	const id = props.id ?? generate();
 	
 	for (const [key, value] of Object.entries(props)) {
 		if (key.startsWith("on") && typeof value === "function") {
@@ -104,9 +105,9 @@ export const Button: Component<ButtonProps> = (props): VNode<ButtonProps> => {
 	};
 };
 
-const btnHandlers = new Map<number, Map<string, Function>>();
+const btnHandlers = new Map<string, Map<string, Function>>();
 export const getButtonHandler = (
-	id: number,
+	id: string,
 	event: string
 ): Function | undefined => {
 	return btnHandlers.get(id)?.get(event);
@@ -121,17 +122,18 @@ export type DropdownOption = {
 };
 
 export type DropdownProps = DefaultProps & {
+	id?: string;
 	placeholder?: string
 	options?: DropdownOption[];
 	onChange?: (value: string) => void;
 	value?: string;
 }
 
-const dropdownHandlers = new Map<number, Map<string, Function>>();
+const dropdownHandlers = new Map<string, Map<string, Function>>();
 export const Dropdown: Component<DropdownProps> = (
 	props
 ): VNode<DropdownProps> => {
-	const id = generate();
+	const id = props.id ?? generate();
 	
 	for (const [key, value] of Object.entries(props)) {
 		if (key.startsWith("on") && typeof value === "function") {
@@ -148,7 +150,7 @@ export const Dropdown: Component<DropdownProps> = (
 };
 
 export const getDropdownHandler = (
-	id: number,
+	id: string,
 	event: string
 ): Function | undefined => {
 	return dropdownHandlers.get(id)?.get(event);

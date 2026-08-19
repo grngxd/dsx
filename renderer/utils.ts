@@ -74,16 +74,14 @@ export const extractDropdowns = (root: VNode): StringSelectMenuBuilder[] => {
 export const wireInteractions = (bot: Client) => {
     bot.on("interactionCreate", async (interaction: Interaction) => {
         if (interaction.isButton()) {
-            const id = Number(interaction.customId);
-            const handler = getButtonHandler(id, "onClick");
+            const handler = getButtonHandler(interaction.customId, "onClick");
             if (handler) handler();
             await interaction.deferUpdate();
         }
 
         if (interaction.isStringSelectMenu()) {
-            const id = Number(interaction.customId);
             const value = interaction.values[0];
-            const handler = getDropdownHandler(id, "onChange");
+            const handler = getDropdownHandler(interaction.customId, "onChange");
             if (handler) handler(value);
             await interaction.deferUpdate();
         }
