@@ -201,17 +201,6 @@ export const wireInteractions = (bot: Client) => {
             runtimes.set(messageId, runtime);
         }
 
-        const current = runComponent(
-            runtime.component,
-            runtime.hooks,
-        );
-
-        runtime.hooks = current.hooks;
-
-        for (const effect of current.effects) {
-            await effect();
-        }
-
         if (interaction.isButton()) {
             const handler = getButtonHandler(
                 id,
