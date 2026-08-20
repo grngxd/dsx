@@ -82,11 +82,30 @@ export const Actions: Component<ActionsProps> = (
 	};
 };
 
+// export type ButtonProps = DefaultProps & {
+//     id?: string;
+//     style?: ButtonStyle;
+//     disabled?: boolean;
+//     emoji?: string;
+//     url?: string;
+//     onClick?: (msg: DiscordMessage<boolean>) => void;
+// };
+
+type LinkButtonProps = DefaultProps & {
+	id?: string;
+	style?: ButtonStyle.Link;
+	disabled?: boolean;
+	emoji?: string;
+	url: string;
+};
+
 export type ButtonProps = DefaultProps & {
 	id?: string;
-    onClick?: (msg: DiscordMessage<true> | DiscordMessage<false>) => void;
-    style?: ButtonStyle;
-};
+	style?: Exclude<ButtonStyle, ButtonStyle.Link>;
+	disabled?: boolean;
+	emoji?: string;
+	onClick?: (msg: DiscordMessage<boolean>) => void;
+} | LinkButtonProps;
 
 export const Button: Component<ButtonProps> = (props): VNode<ButtonProps> => {
 	const id = props.id ?? generate();

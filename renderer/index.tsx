@@ -7,7 +7,7 @@ import {
     encodeResume,
     getComponentId,
 } from "./resumability";
-import { toEditOptions, translateButtons, translateDropdowns, translateText, wireInteractions } from "./utils";
+import { renderButtons, renderDropdowns, renderText, toEditOptions, wireInteractions } from "./utils";
 
 const wiredBots = new WeakSet<Client>();
 
@@ -66,19 +66,19 @@ export const renderLegacy = (
         } else if (child.type === "Embed") {
             embeds.push(renderEmbed(child));
         } else if (child.type === "Description") {
-            content += translateText(child.children);
+            content += renderText(child.children);
         }
     }
 
     content = content.trim();
 
-    const buttons = translateButtons(
+    const buttons = renderButtons(
         rendered,
         component,
         hooks,
     );
 
-    const dropdowns = translateDropdowns(
+    const dropdowns = renderDropdowns(
         rendered,
         component,
         hooks,
@@ -87,10 +87,16 @@ export const renderLegacy = (
     const components: any[] = [];
 
     if (buttons.length > 0) {
-        components.push(
-            new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(...buttons)
-        );
+        // components.push(
+        //     new ActionRowBuilder<ButtonBuilder>()
+        //         .addComponents(...buttons)
+        // );
+        for (let i = 0; i < buttons.length; i += 5) {
+            components.push(
+                new ActionRowBuilder<ButtonBuilder>()
+                    .addComponents(...buttons.slice(i, i + 5))
+            );
+        }
     }
 
     if (dropdowns.length > 0) {
@@ -135,7 +141,7 @@ export const renderV2 = (
         if (child.type === "TextDisplay") {
             components.push(
                 new TextDisplayBuilder()
-                    .setContent(translateText(child.children))
+                    .setContent(renderText(child.children))
             );
 
         } else if (child.type === "Separator") {
@@ -195,7 +201,7 @@ export const renderV2 = (
                 if (nested.type === "TextDisplay") {
                     section.addTextDisplayComponents(
                         new TextDisplayBuilder()
-                            .setContent(translateText(nested.children))
+                            .setContent(renderText(nested.children))
                     );
 
                 } else if (nested.type === "Thumbnail") {
@@ -225,7 +231,7 @@ export const renderV2 = (
                                 hooks,
                             )
                         )
-                        .setLabel(translateText(nested.children))
+                        .setLabel(renderText(nested.children))
                         .setStyle(props.style ?? ButtonStyle.Primary);
 
                     section.setButtonAccessory(button);
@@ -253,7 +259,7 @@ export const renderV2 = (
                 if (nested.type === "TextDisplay") {
                     container.addTextDisplayComponents(
                         new TextDisplayBuilder()
-                            .setContent(translateText(nested.children))
+                            .setContent(renderText(nested.children))
                     );
 
                 } else if (nested.type === "Separator") {
@@ -281,7 +287,7 @@ export const renderV2 = (
                             section.addTextDisplayComponents(
                                 new TextDisplayBuilder()
                                     .setContent(
-                                        translateText(sectionChild.children)
+                                        renderText(sectionChild.children)
                                     )
                             );
 
@@ -316,7 +322,7 @@ export const renderV2 = (
                                     )
                                 )
                                 .setLabel(
-                                    translateText(sectionChild.children)
+                                    renderText(sectionChild.children)
                                 )
                                 .setStyle(
                                     props.style ?? ButtonStyle.Primary
@@ -365,8 +371,8 @@ export const renderV2 = (
                     container.addFileComponents(file);
 
                 } else if (nested.type === "Actions") {
-                    const buttons = translateButtons(nested, component, hooks);
-                    const dropdowns = translateDropdowns(nested, component, hooks);
+                    const buttons = renderButtons(nested, component, hooks);
+                    const dropdowns = renderDropdowns(nested, component, hooks);
 
                     if (buttons.length > 0) {
                         container.addActionRowComponents(
@@ -389,8 +395,8 @@ export const renderV2 = (
             components.push(container);
 
         } else if (child.type === "Actions") {
-            const buttons = translateButtons(child, component, hooks);
-            const dropdowns = translateDropdowns(child, component, hooks);
+            const buttons = renderButtons(child, component, hooks);
+            const dropdowns = renderDropdowns(child, component, hooks);
 
             if (buttons.length > 0) {
                 components.push(

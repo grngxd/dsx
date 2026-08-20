@@ -126,23 +126,10 @@ const Cat = component(() => {
 
                 <Actions>
                     <Button
-                        style={ButtonStyle.Primary}
-                        onClick={() => {
-                            cat.value =
-                                "https://cataas.com/cat/says/dsx";
-                        }}
+                        style={ButtonStyle.Link}
+                        url={cat.value}
                     >
-                        a
-                    </Button>
-
-                    <Button
-                        style={ButtonStyle.Secondary}
-                        onClick={() => {
-                            cat.value =
-                                "https://cataas.com/cat/says/hello";
-                        }}
-                    >
-                        b
+                        open in browser (cat #{index.value})
                     </Button>
                 </Actions>
 
@@ -158,9 +145,10 @@ const Cat = component(() => {
     );
 });
 
-bot.on("clientReady", async b => {
+bot.once("ready", async b => {
     console.log(b.user.tag);
 });
+
 
 bot.on("messageCreate", async message => {
     if (message.content !== "v2") return;
@@ -174,8 +162,7 @@ bot.on("messageCreate", async message => {
                 files: [
                     {
                         attachment: Buffer.from(
-                            "DSX V2 Cat Demo\n\n" +
-                            "CATAAS: https://cataas.com/\n"
+                            "file lmao"
                         ),
                         name: "cat.txt",
                     },
@@ -183,5 +170,6 @@ bot.on("messageCreate", async message => {
             })
     );
 });
+
 
 bot.login(process.env.TOKEN).catch(console.error);

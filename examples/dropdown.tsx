@@ -61,7 +61,7 @@ const Color = component(() => {
     );
 });
 
-bot.on("clientReady", async b => {
+bot.once("ready", async b => {
     console.log(b.user.tag);
 });
 

@@ -5,17 +5,17 @@ import { ButtonProps, DropdownProps, getButtonHandler, getDropdownHandler } from
 import { VNode } from "../types";
 import { components, decodeResume, encodeResume } from "./resumability";
 
-export const translateText = (nodes: Array<VNode | string | number>): string => {
+export const renderText = (nodes: Array<VNode | string | number>): string => {
     return nodes.map(node =>
         typeof node === "string" || typeof node === "number"
             ? String(node)
             : node && typeof node === "object" && "children" in node
-                ? translateText(node.children)
+                ? renderText(node.children)
                 : ""
     ).join("");
 };
 
-export const translateButtons = (
+export const renderButtons = (
     vnode: VNode<ButtonProps>,
     component: number,
     hooks: unknown[],
@@ -27,13 +27,36 @@ export const translateButtons = (
             const props = node.props as ButtonProps;
             const id = String((props as any).id ?? "");
 
+            const btn =  new ButtonBuilder()
+                .setLabel(renderText(node.children))
+                .setStyle(props.style ?? ButtonStyle.Primary)
+            
+            if (props.disabled !== undefined) btn.setDisabled(props.disabled);
+
+            if (props.emoji) btn.setEmoji(props.emoji);
+
+            if (props.style === ButtonStyle.Link) {
+                if (!props.url) {
+                    throw new Error(
+                        `<Button style={Link}> requires a url`
+                    );
+                }
+
+                btn.setURL(props.url);
+            } else {
+                btn.setCustomId(
+                    encodeResume(component, id, hooks)
+                );
+            }
+
             buttons.push(
-                new ButtonBuilder()
-                    .setCustomId(
-                        encodeResume(component, id, hooks)
-                    )
-                    .setLabel(translateText(node.children))
-                    .setStyle(props.style ?? ButtonStyle.Primary)
+                // new ButtonBuilder()
+                //     .setCustomId(
+                //         encodeResume(component, id, hooks)
+                //     )
+                //     .setLabel(renderText(node.children))    
+                //     .setStyle(props.style ?? ButtonStyle.Primary)
+                btn
             );
         }
 
@@ -50,7 +73,7 @@ export const translateButtons = (
     return buttons;
 };
 
-export const translateDropdowns = (
+export const renderDropdowns = (
     root: VNode,
     component: number,
     hooks: unknown[],
