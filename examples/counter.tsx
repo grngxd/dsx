@@ -1,6 +1,6 @@
 import { ButtonStyle, Client } from "discord.js";
 import { Actions, Button, Message } from "../components";
-import { useSignal } from "../hooks";
+import { useComputed, useSignal } from "../hooks";
 import { component, dsx, mount } from "../renderer";
 
 const bot = new Client({
@@ -11,6 +11,7 @@ dsx(bot);
 
 const Counter = component(() => {
     const count = useSignal(0);
+    const doubled = useComputed(() => count.value * 2);
 
     return (
         <Message>
@@ -29,7 +30,7 @@ const Counter = component(() => {
                         count.value = 0;
                     }}
                 >
-                    {count.value}
+                    {count.value} ({doubled.value})
                 </Button>
 
                 <Button

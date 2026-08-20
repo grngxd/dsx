@@ -6,10 +6,7 @@ export function jsx(type: string | Component, props: Record<string, any>): VNode
     const children = arr.flat().filter((c: any) => c !== undefined && c !== null && c !== false && c !== true);
     props.children = children;
 
-    if (typeof type === "function") {
-        return type(props);
-    }
-
+    if (typeof type === "function") return type(props);
     return { type, props, children };
 }
 

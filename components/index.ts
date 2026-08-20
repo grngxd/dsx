@@ -1,5 +1,4 @@
 import { AnySelectMenuInteraction, ButtonInteraction, ButtonStyle, CacheType, ChannelSelectMenuInteraction, ChannelType, ColorResolvable, MentionableSelectMenuInteraction, ModalSubmitInteraction, RoleSelectMenuInteraction, StringSelectMenuInteraction, UserSelectMenuInteraction } from "discord.js";
-import { renderModal } from "renderer/utils";
 import { Component, VNode } from "../types";
 import { normalizeChildren } from "./utils";
 
@@ -93,44 +92,31 @@ export const Actions: Component<ActionsProps> = (
 // };
 
 type LinkButtonProps = DefaultProps & {
-	id?: string;
-	style?: ButtonStyle.Link;
-	disabled?: boolean;
-	emoji?: string;
-	url: string;
+    id?: string;
+    style?: ButtonStyle.Link;
+    disabled?: boolean;
+    emoji?: string;
+    url: string;
 };
 
 export type ButtonProps = DefaultProps & {
-	id?: string;
-	style?: Exclude<ButtonStyle, ButtonStyle.Link>;
-	disabled?: boolean;
-	emoji?: string;
-	onClick?: (interaction: ButtonInteraction) => void;
+    id?: string;
+    style?: Exclude<ButtonStyle, ButtonStyle.Link>;
+    disabled?: boolean;
+    emoji?: string;
+    onClick?: (interaction: ButtonInteraction) => void;
 } | LinkButtonProps;
 
-export const Button: Component<ButtonProps> = (props): VNode<ButtonProps> => {
-	const id = props.id ?? generate();
-	
-	for (const [key, value] of Object.entries(props)) {
-		if (key.startsWith("on") && typeof value === "function") {
-			if (!btnHandlers.has(id)) btnHandlers.set(id, new Map());
-			btnHandlers.get(id)!.set(key, value);
-		}
-	}
+export const Button: Component<ButtonProps> = (
+    props
+): VNode<ButtonProps> => {
+    const id = props.id ?? generate();
 
-	return {
-		type: "Button",
-		props: { ...props, id } as any,
-		children: normalizeChildren(props.children),
-	};
-};
-
-const btnHandlers = new Map<string, Map<string, Function>>();
-export const getButtonHandler = (
-	id: string,
-	event: string
-): Function | undefined => {
-	return btnHandlers.get(id)?.get(event);
+    return {
+        type: "Button",
+        props: { ...props, id } as any,
+        children: normalizeChildren(props.children),
+    };
 };
 
 export type BaseDropdownProps = DefaultProps & {
@@ -190,44 +176,16 @@ export type DropdownProps =
     | ChannelDropdownProps
     | MentionableDropdownProps;
 
-const dropdownHandlers = new Map<string, Map<string, Function>>();
-
 export const Dropdown: Component<DropdownProps> = (
     props
 ): VNode<DropdownProps> => {
     const id = props.id ?? generate();
-
-    for (const [key, value] of Object.entries(props)) {
-        if (key.startsWith("on") && typeof value === "function") {
-            if (!dropdownHandlers.has(id)) {
-                dropdownHandlers.set(id, new Map());
-            }
-
-            dropdownHandlers.get(id)!.set(key, value);
-        }
-    }
 
     return {
         type: "Dropdown",
         props: { ...props, id },
         children: normalizeChildren(props.children),
     };
-};
-
-export const getDropdownHandler = (
-    id: string,
-    event: string
-): Function | undefined => {
-    return dropdownHandlers.get(id)?.get(event);
-};
-
-export const showModal = async (
-    interaction: ButtonInteraction,
-    vnode: VNode,
-) => {
-    await interaction.showModal(
-        renderModal(vnode)
-    );
 };
 
 let modalId = 0;
@@ -267,10 +225,7 @@ export const Modal: Component<ModalProps> = (
     props
 ): VNode<ModalProps> => {
     const id = props.id ?? generateModalId();
-
-    if (props.onSubmit) {
-        modalHandlers.set(id, props.onSubmit);
-    }
+    if (props.onSubmit) modalHandlers.set(id, props.onSubmit);
 
     return {
         type: "Modal",

@@ -1,7 +1,7 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, Client, Message as DiscordMessage, MentionableSelectMenuBuilder, ModalBuilder, RoleSelectMenuBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, TextInputBuilder, TextInputStyle, UserSelectMenuBuilder, type MessageCreateOptions, type MessageEditOptions } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelSelectMenuBuilder, Client, Message as DiscordMessage, MentionableSelectMenuBuilder, ModalBuilder, RoleSelectMenuBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, TextInputBuilder, TextInputStyle, UserSelectMenuBuilder, type MessageCreateOptions, type MessageEditOptions } from "discord.js";
 import { runComponent } from "hooks/signal";
 import { render } from "renderer";
-import { ButtonProps, DropdownProps, getButtonHandler, getDropdownHandler, getModalHandler, ModalProps, TextInputProps } from "../components";
+import { ButtonProps, DropdownProps, getModalHandler, ModalProps, TextInputProps } from "../components";
 import { VNode } from "../types";
 import { components, decodeResume, encodeResume } from "./resumability";
 
@@ -255,6 +255,16 @@ export const renderDropdowns = (
     return menus;
 };
 
+
+export const showModal = async (
+    interaction: ButtonInteraction,
+    vnode: VNode,
+) => {
+    await interaction.showModal(
+        renderModal(vnode)
+    );
+};
+
 export const renderModal = (
     vnode: VNode,
 ): ModalBuilder => {
@@ -318,6 +328,7 @@ const runtimes = new Map<string, {
     component: () => VNode;
     componentId: number;
     hooks: any[];
+    vnode: VNode;
     message: DiscordMessage<boolean>;
     rerender: () => Promise<void>;
 }>();
@@ -338,10 +349,11 @@ export const wireInteractions = (bot: Client) => {
                     interaction.fields.getTextInputValue(id);
             }
 
-            await handler(
-                interaction,
-                values,
-            );
+            try {
+                await handler(interaction,values);
+            } catch (err) {
+                console.error(err);
+            }
 
             if (!interaction.replied && !interaction.deferred) {
                 await interaction.deferUpdate();
@@ -387,6 +399,7 @@ export const wireInteractions = (bot: Client) => {
                 component,
                 componentId,
                 hooks: restored.hooks,
+                vnode: restored.result,
                 message: interaction.message,
                 rerender: async () => {},
             };
@@ -411,6 +424,7 @@ export const wireInteractions = (bot: Client) => {
                 );
 
                 runtime!.hooks = next.hooks;
+                runtime!.vnode = next.result;
 
                 const updatedMsg = render(
                     next.result,
@@ -441,24 +455,96 @@ export const wireInteractions = (bot: Client) => {
         }
 
         if (interaction.isButton()) {
-            const handler = getButtonHandler(
-                id,
-                "onClick",
-            );
+            let handler:
+                | ((interaction: ButtonInteraction) => void)
+                | undefined;
+
+            const walk = (node: VNode) => {
+                if (handler) return;
+
+                if (
+                    node.type === "Button" &&
+                    String(
+                        (node.props as ButtonProps).id ?? ""
+                    ) === id
+                ) {
+                    const props = node.props as ButtonProps;
+
+                    if ("onClick" in props) {
+                        handler = props.onClick;
+                    }
+
+                    return;
+                }
+
+                if (Array.isArray(node.children)) {
+                    for (const child of node.children) {
+                        if (
+                            typeof child === "object" &&
+                            child !== null
+                        ) {
+                            walk(child);
+                        }
+                    }
+                }
+            };
+
+            walk(runtime.vnode);
 
             if (handler) {
-                await handler(interaction);
+                try {
+                    await handler(interaction);
+                }
+                catch (err) {
+                    console.error(err);
+                }
             }
         }
 
         if (interaction.isAnySelectMenu()) {
-            const handler = getDropdownHandler(
-                id,
-                "onChange",
-            );
+            let handler:
+                | ((interaction: any) => void)
+                | undefined;
+
+            const walk = (node: VNode) => {
+                if (handler) return;
+
+                if (
+                    node.type === "Dropdown" &&
+                    String(
+                        (node.props as DropdownProps).id ?? ""
+                    ) === id
+                ) {
+                    const props = node.props as DropdownProps;
+
+                    if (props.onChange) {
+                        handler = props.onChange;
+                    }
+
+                    return;
+                }
+
+                if (Array.isArray(node.children)) {
+                    for (const child of node.children) {
+                        if (
+                            typeof child === "object" &&
+                            child !== null
+                        ) {
+                            walk(child);
+                        }
+                    }
+                }
+            };
+
+            walk(runtime.vnode);
 
             if (handler) {
-                await handler(interaction);
+                try {
+                    await handler(interaction);
+                }
+                catch (err) {
+                    console.error(err);
+                }
             }
         }
 

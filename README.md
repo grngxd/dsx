@@ -4,15 +4,14 @@
 
 ---
 
-> ` create interactive messages using react-like components and fine-grained reactivity `
+> ` create interactive Discord messages with React-like components and fine-grained reactivity `
 
 ---
 
-> [!CAUTION]  
-> ### dsx is still in early development and experimental. expect breaking changes and evolving apis.
+> [!WARNING]
+> ### dsx is still in development and is slightly experimental. be weary of few breaking changes and evolving apis.
 
-<div style="display: flex; gap: 1rem; align-items: flex-start; justify-content: center;">
-<div>
+<div style="display: flex; gap: 1rem; align-items: flex-start; justify-content: center;"><div>
 
 ```tsx
 import { Actions, Button, Description, Embed, Message, Title } from "dsxjs/components";
@@ -26,9 +25,9 @@ const bot = new Client({
 
 dsx(bot);
 
-// create top-level component with the qwik-like "component" fn
 const Counter = component(() => {
     const count = useSignal(0);
+
     return (
         <Message>
             <Actions>
@@ -65,18 +64,18 @@ bot.login(process.env.TOKEN).catch(console.error);
 </div>
 
 ### key features
-- **reactive**: fine-grained reactivity with `useSignal` and `useEffect` hooks
-- **lightweight**: no dependencies, just a few kilobytes
-- **simple**: easy to use and understand api
+- **reactive**: automatically updates messages depending on state
+- **declarative**: build messages with jsx
+- **interactive**: supports buttons, dropdowns, modals, and every other discord component
+- **hooks**: use (computed) signals, effects, and other reactive hooks to manage state
+- **resumable**: interactions survive bot restarts
+- **lightweight**: 1 dependency, just a few kilobytes
 - **flexible**: plug-and-play into any existing discord.js bot
-- **compatible**: works with both Bun and Node.js
-- **type-safe**: built with typescript for better dx
-- **extensible**: easily extendable with custom components and hooks
-- **modern**: uses modern javascript features & tooling
-- **open-source**: fully open-source under the MIT license
+- **modern**: first-class support for discord's "components v2" api
+- **familiar**: if you know react/qwik/solid/... you'll feel right at home
 
 ### why dsx?
-`dsx` makes building interactive discord messages a breeze, combining the declarative UI approach of JSX with a reactive state model inspired by solid.js & react. It allows you to build complex UIs with minimal code, while still being lightweight and performant. instead of manually managing message content, components, and interactions, you write ui components that update *themselves* automatically.
+`dsx` lets you describe Discord UI with JSX and update it automatically through reactive state. instead of manually managing messages, components, and interactions, you write ui components that update *themselves* automatically.
 
 ### getting started
 
@@ -97,6 +96,17 @@ npm create dsxjs
 pnpm create dsxjs
 yarn create dsxjs
 ```
+
+
+### what's next?
+
+- [getting started](./docs/quick-start.md)
+- [learn dsx](./docs/learn/README.md)
+- [component reference](./docs/reference/components.md)
+- [hooks reference](./docs/reference/hooks.md)
+- [resumability](./docs/learn/resumability.md)
+- [components v2](./docs/learn/components-v2.md)
+- [examples](./examples)
 
 ### roadmap & contribution
 contributions, bug reports, and feature requests are welcome! See the [roadmap](./docs/ROADMAP.md) and [contributing guide](./docs/CONTRIBUTING.md) for details.

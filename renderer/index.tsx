@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, Client, ContainerBuilder, Message as DiscordMessage, EmbedBuilder, FileBuilder, InteractionResponse, MediaGalleryBuilder, MediaGalleryItemBuilder, MentionableSelectMenuBuilder, MessageFlags, RoleSelectMenuBuilder, SectionBuilder, SeparatorBuilder, StringSelectMenuBuilder, TextDisplayBuilder, ThumbnailBuilder, UserSelectMenuBuilder, type MessageCreateOptions } from "discord.js";
-import { ButtonProps, Description, Embed, Message, reset, Title, type ContainerProps, type FileProps, type MediaProps, type SeparatorProps, type ThumbnailProps } from "../components";
+import { ButtonProps, Description, DropdownProps, Embed, Message, MessageProps, Title, type ContainerProps, type FileProps, type MediaProps, type SeparatorProps, type ThumbnailProps } from "../components";
 import { runComponent } from "../hooks/signal";
 import { VNode } from "../types";
 import { renderEmbed } from "./renderers";
@@ -26,8 +26,6 @@ export const render = (
     hooks: unknown[],
 ): MessageCreateOptions => {
     try {
-        reset();
-
         if (rendered.type !== "Message") {
             throw new Error("Root element must be <Message>");
         }
@@ -222,20 +220,38 @@ export const renderV2 = (
                     }
 
                     section.setThumbnailAccessory(thumbnail);
-
                 } else if (nested.type === "Button") {
                     const props = nested.props as ButtonProps;
 
                     const button = new ButtonBuilder()
-                        .setCustomId(
+                        .setLabel(renderText(nested.children))
+                        .setStyle(props.style ?? ButtonStyle.Primary);
+
+                    if (props.disabled !== undefined) {
+                        button.setDisabled(props.disabled);
+                    }
+
+                    if (props.emoji) {
+                        button.setEmoji(props.emoji);
+                    }
+
+                    if (props.style === ButtonStyle.Link) {
+                        if (!props.url) {
+                            throw new Error(
+                                `<Button style={Link}> requires a url`
+                            );
+                        }
+
+                        button.setURL(props.url);
+                    } else {
+                        button.setCustomId(
                             encodeResume(
                                 component,
                                 String((props as any).id ?? ""),
                                 hooks,
                             )
-                        )
-                        .setLabel(renderText(nested.children))
-                        .setStyle(props.style ?? ButtonStyle.Primary);
+                        );
+                    }
 
                     section.setButtonAccessory(button);
                 }
@@ -312,24 +328,42 @@ export const renderV2 = (
                             }
 
                             section.setThumbnailAccessory(thumbnail);
-
                         } else if (sectionChild.type === "Button") {
                             const props = sectionChild.props as ButtonProps;
 
                             const button = new ButtonBuilder()
-                                .setCustomId(
-                                    encodeResume(
-                                        component,
-                                        String((props as any).id ?? ""),
-                                        hooks,
-                                    )
-                                )
                                 .setLabel(
                                     renderText(sectionChild.children)
                                 )
                                 .setStyle(
                                     props.style ?? ButtonStyle.Primary
                                 );
+
+                            if (props.disabled !== undefined) {
+                                button.setDisabled(props.disabled);
+                            }
+
+                            if (props.emoji) {
+                                button.setEmoji(props.emoji);
+                            }
+
+                            if (props.style === ButtonStyle.Link) {
+                                if (!props.url) {
+                                    throw new Error(
+                                        `<Button style={Link}> requires a url`
+                                    );
+                                }
+
+                                button.setURL(props.url);
+                            } else {
+                                button.setCustomId(
+                                    encodeResume(
+                                        component,
+                                        String((props as any).id ?? ""),
+                                        hooks,
+                                    )
+                                );
+                            }
 
                             section.setButtonAccessory(button);
                         }
@@ -515,169 +549,612 @@ export const mount = async (
     }
 }
 
-export const validateLegacy = (node: VNode, parentType?: string) => {
-    const name = typeof node.type === "string" ? node.type : node.type?.name ?? "Unknown";
+export const validateLegacy = (
+    node: VNode,
+    parentType?: string
+) => {
+    const name =
+        typeof node.type === "string"
+            ? node.type
+            : node.type?.name ?? "Unknown";
 
-    // <Embed> must be a child of <Message>
-    if (name === "Embed" && parentType !== "Message") {
-        throw new Error(`<Embed> must be a child of <Message>`);
-    }
+    const children = Array.isArray(node.children)
+        ? node.children
+        : [];
 
-    // <Description> can only be used once inside <Embed>
-    if (name === "Embed") {
-        const children = (node.props as any).children;
-        if (children) {
-            const arr = Array.isArray(children) ? children : [children];
-            const descriptions = arr.filter((c: any) => c && c.type === "Description");
-            if (descriptions.length > 1) {
-                throw new Error(`<Description> can only be used once inside <Embed>`);
-            }
+    if (name === "Message") {
+        if (parentType) {
+            throw new Error(`<Message> cannot be nested inside <${parentType}>`);
         }
-    }
-    
-    // <Actions> can only be used inside <Message>
-    if (name === "Actions" && parentType !== "Message") {
-        throw new Error(`<Actions> can only be used inside <Message>`);
-    }
 
-    // Actions can only be used inside <Actions>
-    if (["Button", "Dropdown"].includes(name) && parentType !== "Actions") {
-        throw new Error(`<${name}> can only be used inside <Actions>`);
-    }
-
-    const children = (node.props as any).children;
-    if (children) {
-        const arr = Array.isArray(children) ? children : [children];
-        for (const child of arr) {
-            if (typeof child === "object" && child !== null) {
-                validateLegacy(child, name);
-            }
-        }
-    }
-}
-
-export const validateV2 = (node: VNode, parentType?: string) => {
-    const name = typeof node.type === "string"
-        ? node.type
-        : node.type?.name ?? "Unknown";
-
-    if (name === "Message" && !(node.props as any).v2) {
-        throw new Error(`<Message> must have the v2 prop for v2 messages`);
-    }
-
-    // <Container> can only be a child of <Message>
-    if (name === "Container" && parentType !== "Message") {
-        throw new Error(`<Container> must be a child of <Message>`);
-    }
-
-    // <TextDisplay> can be used inside <Message>, <Container>, or <Section>
-    if (
-        name === "TextDisplay" &&
-        !["Message", "Container", "Section"].includes(parentType ?? "")
-    ) {
-        throw new Error(
-            `<TextDisplay> can only be used inside <Message>, <Container> or <Section>`
-        );
-    }
-
-    // <Separator> can only be used inside <Message> or <Container>
-    if (
-        name === "Separator" &&
-        !["Message", "Container"].includes(parentType ?? "")
-    ) {
-        throw new Error(
-            `<Separator> can only be used inside <Message> or <Container>`
-        );
-    }
-
-    // <Section> can only be used inside <Message> or <Container>
-    if (
-        name === "Section" &&
-        !["Message", "Container"].includes(parentType ?? "")
-    ) {
-        throw new Error(
-            `<Section> can only be used inside <Message> or <Container>`
-        );
-    }
-
-    // <Thumbnail> can only be used inside <Section>
-    if (name === "Thumbnail" && parentType !== "Section") {
-        throw new Error(
-            `<Thumbnail> can only be used inside <Section>`
-        );
-    }
-
-    // <MediaGallery> can only be used inside <Message> or <Container>
-    if (
-        name === "MediaGallery" &&
-        !["Message", "Container"].includes(parentType ?? "")
-    ) {
-        throw new Error(
-            `<MediaGallery> can only be used inside <Message> or <Container>`
-        );
-    }
-
-    // <Media> can only be used inside <MediaGallery>
-    if (name === "Media" && parentType !== "MediaGallery") {
-        throw new Error(
-            `<Media> can only be used inside <MediaGallery>`
-        );
-    }
-
-    // <File> can only be used inside <Message> or <Container>
-    if (
-        name === "File" &&
-        !["Message", "Container"].includes(parentType ?? "")
-    ) {
-        throw new Error(
-            `<File> can only be used inside <Message> or <Container>`
-        );
-    }
-
-    // <Actions> can be used inside <Message> or <Container>
-    if (
-        name === "Actions" &&
-        !["Message", "Container"].includes(parentType ?? "")
-    ) {
-        throw new Error(
-            `<Actions> can only be used inside <Message> or <Container>`
-        );
-    }
-
-    // <Button> can be used inside <Actions> or as a Section accessory
-    if (
-        name === "Button" &&
-        !["Actions", "Section"].includes(parentType ?? "")
-    ) {
-        throw new Error(
-            `<Button> can only be used inside <Actions> or <Section>`
-        );
-    }
-
-    // <Dropdown> can only be used inside <Actions>
-    if (name === "Dropdown" && parentType !== "Actions") {
-        throw new Error(
-            `<Dropdown> can only be used inside <Actions>`
-        );
-    }
-
-    // <MediaGallery> can only contain <Media>
-    if (name === "MediaGallery") {
-        const children = (node.props as any).children;
-
-        if (children) {
-            const arr = Array.isArray(children)
-                ? children
-                : [children];
-
-            const invalid = arr.filter(
-                (child: any) =>
-                    child &&
-                    typeof child === "object" &&
-                    child.type !== "Media"
+        if ((node.props as MessageProps).v2) {
+            throw new Error(
+                `<Message v2> must be rendered as a v2 message`
             );
+        }
 
-            if (invalid.length > 0) {
+        let rows = 0;
+
+        for (const child of children) {
+            if (
+                typeof child === "string" ||
+                typeof child === "number"
+            ) {
+                continue;
+            }
+
+            if (!child || typeof child !== "object") {
+                throw new Error(
+                    `Invalid child inside <Message>`
+                );
+            }
+
+            const childName =
+                typeof child.type === "string"
+                    ? child.type
+                    : child.type?.name ?? "Unknown";
+
+            if (childName === "Actions") {
+                let buttons = 0;
+                let dropdowns = 0;
+
+                for (const action of child.children) {
+                    if (
+                        !action ||
+                        typeof action !== "object"
+                    ) {
+                        throw new Error(
+                            `Only <Button> and <Dropdown> can be used inside <Actions>`
+                        );
+                    }
+
+                    const actionName =
+                        typeof action.type === "string"
+                            ? action.type
+                            : action.type?.name ?? "Unknown";
+
+                    if (actionName === "Button") {
+                        buttons++;
+                    } else if (actionName === "Dropdown") {
+                        dropdowns++;
+                    } else {
+                        throw new Error(
+                            `<${actionName}> cannot be used inside <Actions>`
+                        );
+                    }
+                }
+
+                if (buttons > 25) {
+                    throw new Error(
+                        `<Actions> can contain at most 25 buttons`
+                    );
+                }
+
+                if (buttons > 0) {
+                    rows += Math.ceil(buttons / 5);
+                }
+
+                rows += dropdowns;
+                continue;
+            }
+
+            if (
+                childName !== "Embed" &&
+                childName !== "Description"
+            ) {
+                throw new Error(
+                    `<${childName}> cannot be used directly inside <Message>`
+                );
+            }
+        }
+
+        if (rows > 5) {
+            throw new Error(
+                `A message can contain at most 5 component rows`
+            );
+        }
+    }
+
+    if (name === "Embed") {
+        if (parentType !== "Message") {
+            throw new Error(
+                `<Embed> must be a child of <Message>`
+            );
+        }
+
+        let titles = 0;
+        let descriptions = 0;
+        let fields = 0;
+
+        for (const child of children) {
+            if (
+                typeof child === "string" ||
+                typeof child === "number"
+            ) {
+                continue;
+            }
+
+            if (!child || typeof child !== "object") {
+                throw new Error(
+                    `Invalid child inside <Embed>`
+                );
+            }
+
+            const childName =
+                typeof child.type === "string"
+                    ? child.type
+                    : child.type?.name ?? "Unknown";
+
+            if (childName === "Title") {
+                titles++;
+            } else if (childName === "Description") {
+                descriptions++;
+            } else if (childName === "Fields") {
+                fields += child.children.filter(
+                    (field: any) =>
+                        field &&
+                        typeof field === "object" &&
+                        field.type === "Field"
+                ).length;
+            } else {
+                throw new Error(
+                    `<${childName}> cannot be used inside <Embed>`
+                );
+            }
+        }
+
+        if (titles > 1) {
+            throw new Error(
+                `<Embed> can only contain one <Title>`
+            );
+        }
+
+        if (descriptions > 1) {
+            throw new Error(
+                `<Embed> can only contain one <Description>`
+            );
+        }
+
+        if (fields > 25) {
+            throw new Error(
+                `<Embed> can contain at most 25 <Field> components`
+            );
+        }
+    }
+
+    if (name === "Description") {
+        if (
+            parentType !== "Message" &&
+            parentType !== "Embed" &&
+            parentType !== "Field"
+        ) {
+            throw new Error(
+                `<Description> can only be used inside <Message>, <Embed>, or <Field>`
+            );
+        }
+    }
+
+    if (name === "Title") {
+        if (
+            parentType !== "Embed" &&
+            parentType !== "Field"
+        ) {
+            throw new Error(
+                `<Title> can only be used inside <Embed> or <Field>`
+            );
+        }
+    }
+
+    if (name === "Fields") {
+        if (parentType !== "Embed") {
+            throw new Error(
+                `<Fields> must be a child of <Embed>`
+            );
+        }
+
+        if (
+            children.length > 25
+        ) {
+            throw new Error(
+                `<Fields> can contain at most 25 <Field> components`
+            );
+        }
+
+        for (const child of children) {
+            if (
+                !child ||
+                typeof child !== "object" ||
+                child.type !== "Field"
+            ) {
+                throw new Error(
+                    `<Fields> can only contain <Field>`
+                );
+            }
+        }
+    }
+
+    if (name === "Field") {
+        if (parentType !== "Fields") {
+            throw new Error(
+                `<Field> must be a child of <Fields>`
+            );
+        }
+
+        let titles = 0;
+        let descriptions = 0;
+
+        for (const child of children) {
+            if (
+                typeof child === "string" ||
+                typeof child === "number"
+            ) {
+                continue;
+            }
+
+            if (!child || typeof child !== "object") {
+                continue;
+            }
+
+            if (child.type === "Title") {
+                titles++;
+            } else if (child.type === "Description") {
+                descriptions++;
+            } else {
+                throw new Error(
+                    `<${child.type}> cannot be used inside <Field>`
+                );
+            }
+        }
+
+        if (titles !== 1) {
+            throw new Error(
+                `<Field> must contain exactly one <Title>`
+            );
+        }
+
+        if (descriptions !== 1) {
+            throw new Error(
+                `<Field> must contain exactly one <Description>`
+            );
+        }
+    }
+
+    if (name === "Actions") {
+        if (parentType !== "Message") {
+            throw new Error(
+                `<Actions> must be a child of <Message>`
+            );
+        }
+
+        if (children.length === 0) {
+            throw new Error(
+                `<Actions> cannot be empty`
+            );
+        }
+
+        for (const child of children) {
+            if (!child || typeof child !== "object") {
+                throw new Error(
+                    `<Actions> can only contain <Button> and <Dropdown>`
+                );
+            }
+
+            if (
+                child.type !== "Button" &&
+                child.type !== "Dropdown"
+            ) {
+                throw new Error(
+                    `<${child.type}> cannot be used inside <Actions>`
+                );
+            }
+        }
+    }
+
+    if (name === "Button") {
+        if (parentType !== "Actions") {
+            throw new Error(
+                `<Button> must be a child of <Actions>`
+            );
+        }
+
+        const props = node.props as ButtonProps;
+
+        if (props.style === ButtonStyle.Link) {
+            if (!props.url) {
+                throw new Error(
+                    `<Button style={Link}> requires a url`
+                );
+            }
+        } else if ("url" in props && props.url) {
+            throw new Error(
+                `Only link buttons can have a url`
+            );
+        }
+    }
+
+    if (name === "Dropdown") {
+        if (parentType !== "Actions") {
+            throw new Error(
+                `<Dropdown> must be a child of <Actions>`
+            );
+        }
+
+        const props = node.props as DropdownProps;
+
+        const min = props.minValues ?? 1;
+        const max = props.maxValues ?? 1;
+
+        if (min < 0 || min > 25) {
+            throw new Error(
+                `<Dropdown> minValues must be between 0 and 25`
+            );
+        }
+
+        if (max < 1 || max > 25) {
+            throw new Error(
+                `<Dropdown> maxValues must be between 1 and 25`
+            );
+        }
+
+        if (min > max) {
+            throw new Error(
+                `<Dropdown> minValues cannot be greater than maxValues`
+            );
+        }
+
+        if (props.type === "string") {
+            if (
+                props.options.length === 0 ||
+                props.options.length > 25
+            ) {
+                throw new Error(
+                    `<Dropdown type="string"> must contain between 1 and 25 options`
+                );
+            }
+
+            const values = new Set<string>();
+
+            for (const option of props.options) {
+                if (values.has(option.value)) {
+                    throw new Error(
+                        `<Dropdown> option values must be unique`
+                    );
+                }
+
+                values.add(option.value);
+            }
+
+            if (max > props.options.length) {
+                throw new Error(
+                    `<Dropdown> maxValues cannot exceed the number of options`
+                );
+            }
+
+            const selected = props.value === undefined
+                ? []
+                : Array.isArray(props.value)
+                    ? props.value
+                    : [props.value];
+
+            for (const value of selected) {
+                if (!values.has(value)) {
+                    throw new Error(
+                        `<Dropdown> value "${value}" does not exist in its options`
+                    );
+                }
+            }
+        }
+    }
+
+    for (const child of children) {
+        if (
+            typeof child === "object" &&
+            child !== null
+        ) {
+            validateLegacy(child, name);
+        }
+    }
+};
+
+
+export const validateV2 = (
+    node: VNode,
+    parentType?: string
+) => {
+    const name =
+        typeof node.type === "string"
+            ? node.type
+            : node.type?.name ?? "Unknown";
+
+    const children = Array.isArray(node.children)
+        ? node.children
+        : [];
+
+    if (name === "Message") {
+        if (parentType) {
+            throw new Error(
+                `<Message> cannot be nested`
+            );
+        }
+
+        if (!(node.props as MessageProps).v2) {
+            throw new Error(
+                `<Message> must have the v2 prop for v2 messages`
+            );
+        }
+
+        for (const child of children) {
+            if (
+                typeof child === "string" ||
+                typeof child === "number"
+            ) {
+                throw new Error(
+                    `Raw text cannot be used directly inside <Message v2>`
+                );
+            }
+
+            if (!child || typeof child !== "object") {
+                throw new Error(
+                    `Invalid child inside <Message v2>`
+                );
+            }
+
+            if (
+                ![
+                    "TextDisplay",
+                    "Separator",
+                    "MediaGallery",
+                    "File",
+                    "Section",
+                    "Container",
+                    "Actions",
+                ].includes(child.type)
+            ) {
+                throw new Error(
+                    `<${child.type}> cannot be used directly inside <Message v2>`
+                );
+            }
+        }
+    }
+
+    if (name === "Container") {
+        if (parentType !== "Message") {
+            throw new Error(
+                `<Container> must be a child of <Message>`
+            );
+        }
+
+        for (const child of children) {
+            if (
+                !child ||
+                typeof child !== "object" ||
+                ![
+                    "TextDisplay",
+                    "Separator",
+                    "Section",
+                    "MediaGallery",
+                    "File",
+                    "Actions",
+                ].includes(child.type)
+            ) {
+                throw new Error(
+                    `<${
+                        child?.type ?? "Unknown"
+                    }> cannot be used inside <Container>`
+                );
+            }
+        }
+    }
+
+    if (name === "TextDisplay") {
+        if (
+            ![
+                "Message",
+                "Container",
+                "Section",
+            ].includes(parentType ?? "")
+        ) {
+            throw new Error(
+                `<TextDisplay> can only be used inside <Message>, <Container>, or <Section>`
+            );
+        }
+    }
+
+    if (name === "Separator") {
+        if (
+            ![
+                "Message",
+                "Container",
+            ].includes(parentType ?? "")
+        ) {
+            throw new Error(
+                `<Separator> can only be used inside <Message> or <Container>`
+            );
+        }
+    }
+
+    if (name === "Section") {
+        if (
+            ![
+                "Message",
+                "Container",
+            ].includes(parentType ?? "")
+        ) {
+            throw new Error(
+                `<Section> can only be used inside <Message> or <Container>`
+            );
+        }
+
+        let textDisplays = 0;
+        let accessories = 0;
+
+        for (const child of children) {
+            if (!child || typeof child !== "object") {
+                throw new Error(
+                    `<Section> can only contain <TextDisplay>, <Button>, or <Thumbnail>`
+                );
+            }
+
+            if (child.type === "TextDisplay") {
+                textDisplays++;
+            } else if (
+                child.type === "Button" ||
+                child.type === "Thumbnail"
+            ) {
+                accessories++;
+            } else {
+                throw new Error(
+                    `<${child.type}> cannot be used inside <Section>`
+                );
+            }
+        }
+
+        if (textDisplays < 1 || textDisplays > 3) {
+            throw new Error(
+                `<Section> must contain between 1 and 3 <TextDisplay> components`
+            );
+        }
+
+        if (accessories !== 1) {
+            throw new Error(
+                `<Section> must contain exactly one Button or Thumbnail`
+            );
+        }
+    }
+
+    if (name === "Thumbnail") {
+        if (parentType !== "Section") {
+            throw new Error(
+                `<Thumbnail> must be a child of <Section>`
+            );
+        }
+    }
+
+    if (name === "MediaGallery") {
+        if (
+            parentType !== "Message" &&
+            parentType !== "Container"
+        ) {
+            throw new Error(
+                `<MediaGallery> can only be used inside <Message> or <Container>`
+            );
+        }
+
+        if (
+            children.length === 0 ||
+            children.length > 10
+        ) {
+            throw new Error(
+                `<MediaGallery> must contain between 1 and 10 <Media> components`
+            );
+        }
+
+        for (const child of children) {
+            if (
+                !child ||
+                typeof child !== "object" ||
+                child.type !== "Media"
+            ) {
                 throw new Error(
                     `<MediaGallery> can only contain <Media>`
                 );
@@ -685,100 +1162,185 @@ export const validateV2 = (node: VNode, parentType?: string) => {
         }
     }
 
-    // <Section> can only contain TextDisplay + 1 accessory
-    if (name === "Section") {
-        const children = (node.props as any).children;
-
-        if (children) {
-            const arr = Array.isArray(children)
-                ? children
-                : [children];
-
-            const textDisplays = arr.filter(
-                (child: any) =>
-                    child &&
-                    typeof child === "object" &&
-                    child.type === "TextDisplay"
+    if (name === "Media") {
+        if (parentType !== "MediaGallery") {
+            throw new Error(
+                `<Media> must be a child of <MediaGallery>`
             );
+        }
+    }
 
-            const accessories = arr.filter(
-                (child: any) =>
-                    child &&
-                    typeof child === "object" &&
-                    ["Button", "Thumbnail"].includes(child.type)
+    if (name === "File") {
+        if (
+            parentType !== "Message" &&
+            parentType !== "Container"
+        ) {
+            throw new Error(
+                `<File> can only be used inside <Message> or <Container>`
             );
+        }
+    }
 
-            const invalid = arr.filter(
-                (child: any) =>
-                    child &&
-                    typeof child === "object" &&
-                    !["TextDisplay", "Button", "Thumbnail"].includes(child.type)
+    if (name === "Actions") {
+        if (
+            parentType !== "Message" &&
+            parentType !== "Container"
+        ) {
+            throw new Error(
+                `<Actions> can only be used inside <Message> or <Container>`
             );
+        }
 
-            if (textDisplays.length === 0) {
+        if (children.length === 0) {
+            throw new Error(
+                `<Actions> cannot be empty`
+            );
+        }
+
+        let buttons = 0;
+        let dropdowns = 0;
+
+        for (const child of children) {
+            if (!child || typeof child !== "object") {
                 throw new Error(
-                    `<Section> must contain at least one <TextDisplay>`
+                    `<Actions> can only contain <Button> and <Dropdown>`
                 );
             }
 
-            if (accessories.length > 1) {
+            if (child.type === "Button") {
+                buttons++;
+            } else if (child.type === "Dropdown") {
+                dropdowns++;
+            } else {
                 throw new Error(
-                    `<Section> can only have one accessory`
+                    `<${child.type}> cannot be used inside <Actions>`
+                );
+            }
+        }
+
+        if (buttons > 5) {
+            throw new Error(
+                `<Actions> can contain at most 5 buttons`
+            );
+        }
+
+        if (dropdowns > 0 && buttons > 0) {
+            throw new Error(
+                `<Actions> cannot contain both <Button> and <Dropdown>`
+            );
+        }
+
+        if (dropdowns > 1) {
+            throw new Error(
+                `<Actions> can contain only one <Dropdown>`
+            );
+        }
+    }
+
+    if (name === "Button") {
+        if (
+            parentType !== "Actions" &&
+            parentType !== "Section"
+        ) {
+            throw new Error(
+                `<Button> can only be used inside <Actions> or <Section>`
+            );
+        }
+
+        const props = node.props as ButtonProps;
+
+        if (props.style === ButtonStyle.Link) {
+            if (!props.url) {
+                throw new Error(
+                    `<Button style={Link}> requires a url`
+                );
+            }
+        } else if ("url" in props && props.url) {
+            throw new Error(
+                `Only link buttons can have a url`
+            );
+        }
+    }
+
+    if (name === "Dropdown") {
+        if (parentType !== "Actions") {
+            throw new Error(
+                `<Dropdown> must be a child of <Actions>`
+            );
+        }
+
+        const props = node.props as DropdownProps;
+        const min = props.minValues ?? 1;
+        const max = props.maxValues ?? 1;
+
+        if (min < 0 || min > 25) {
+            throw new Error(
+                `<Dropdown> minValues must be between 0 and 25`
+            );
+        }
+
+        if (max < 1 || max > 25) {
+            throw new Error(
+                `<Dropdown> maxValues must be between 1 and 25`
+            );
+        }
+
+        if (min > max) {
+            throw new Error(
+                `<Dropdown> minValues cannot be greater than maxValues`
+            );
+        }
+
+        if (props.type === "string") {
+            if (
+                props.options.length === 0 ||
+                props.options.length > 25
+            ) {
+                throw new Error(
+                    `<Dropdown type="string"> must contain between 1 and 25 options`
                 );
             }
 
-            if (invalid.length > 0) {
+            const values = new Set<string>();
+
+            for (const option of props.options) {
+                if (values.has(option.value)) {
+                    throw new Error(
+                        `<Dropdown> option values must be unique`
+                    );
+                }
+
+                values.add(option.value);
+            }
+
+            if (max > props.options.length) {
                 throw new Error(
-                    `<${invalid[0].type}> cannot be used inside <Section>`
+                    `<Dropdown> maxValues cannot exceed the number of options`
                 );
+            }
+
+            const selected = props.value === undefined
+                ? []
+                : Array.isArray(props.value)
+                    ? props.value
+                    : [props.value];
+
+            for (const value of selected) {
+                if (!values.has(value)) {
+                    throw new Error(
+                        `<Dropdown> value "${value}" does not exist in its options`
+                    );
+                }
             }
         }
     }
 
-    // <Container> can only contain valid V2 children
-    if (name === "Container") {
-        const children = (node.props as any).children;
-
-        if (children) {
-            const arr = Array.isArray(children)
-                ? children
-                : [children];
-
-            const allowed = [
-                "TextDisplay",
-                "Separator",
-                "Section",
-                "MediaGallery",
-                "File",
-                "Actions",
-            ];
-
-            const invalid = arr.find(
-                (child: any) =>
-                    child &&
-                    typeof child === "object" &&
-                    !allowed.includes(child.type)
-            );
-
-            if (invalid) {
-                throw new Error(
-                    `<${invalid.type}> cannot be used inside <Container>`
-                );
-            }
-        }
-    }
-
-    const children = (node.props as any).children;
-
-    if (children) {
-        const arr = Array.isArray(children)
-            ? children
-            : [children];
-
-        for (const child of arr) {
-            if (typeof child === "object" && child !== null) {
-                validateV2(child, name);
-            }
+    for (const child of children) {
+        if (
+            typeof child === "object" &&
+            child !== null
+        ) {
+            validateV2(child, name);
         }
     }
 };
@@ -825,4 +1387,5 @@ const ErrorComponent = ({ error }: { error: Error }) => (
 );
 
 export { component } from "./resumability";
+export { showModal } from "./utils";
 

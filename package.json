@@ -41,9 +41,9 @@
     "pack:check": "bunx npm pack --dry-run",
     "prepack": "bun run clean && bun run build",
     "prepublishOnly": "bun run build && bun run pack:check",
-    "release:patch": "bunx npm version patch && bun publish",
-    "release:minor": "bunx npm version minor && bun publish",
-    "release:major": "bunx npm version major && bun publish"
+    "release:patch": "bunx npm login && bunx npm version patch && bun publish",
+    "release:minor": "bunx npm login && bunx npm version minor && bun publish",
+    "release:major": "bunx npm login && bunx npm version major && bun publish"
   },
   "devDependencies": {
     "@types/bun": "latest"

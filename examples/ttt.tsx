@@ -220,6 +220,20 @@ bot.on("interactionCreate", async interaction => {
             true
         );
 
+    if (opponent.bot) {
+        await interaction.reply({
+            content: "You can't play against bots!",
+        });
+        return;
+    }
+
+    if (opponent.id === interaction.user.id) {
+        await interaction.reply({
+            content: "You can't play against yourself!",
+        });
+        return;
+    }
+
     await mount(
         App,
         bot,
