@@ -100,7 +100,7 @@ yarn create dsxjs
 
 ### what's next?
 
-- [getting started](./docs/quick-start.md)
+- [getting started](./docs/README.md)
 - [learn dsx](./docs/learn/README.md)
 - [component reference](./docs/reference/components.md)
 - [hooks reference](./docs/reference/hooks.md)

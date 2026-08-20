@@ -20,16 +20,16 @@ the recommended path is:
 2. **[interactions](./interactions.md)**
    learn how buttons, dropdowns, and other Discord interactions connect to your components.
 
-3. **[reactive state](./reactive-state.md)**
+3. **[reactive state](./state.md)**
    learn how `useSignal()` turns your Discord messages into reactive interfaces.
 
-4. **[computed values](./computed-values.md)**
+4. **[computed values](./computed.md)**
    learn how to derive values from reactive state with `useComputed()`.
 
 5. **[effects](./effects.md)**
    learn how to run side effects with `useEffect()`.
 
-6. **[components and props](./components-and-props.md)**
+6. **[components](./components.md)**
    learn how to build reusable dsx components.
 
 7. **[dropdowns](./dropdowns.md)**
@@ -41,7 +41,7 @@ the recommended path is:
 9. **[resumability](./resumability.md)**
    learn how dsx restores interactive messages and their state after a bot restart.
 
-10. **[Components V2](./components-v2.md)**
+10. **[Components V2](./v2.md)**
     learn how to build interfaces using Discord's Components V2 API.
 
 # WHAT YOU'LL LEARN

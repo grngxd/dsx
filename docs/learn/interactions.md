@@ -320,4 +320,4 @@ see the [resumability guide](./resumability.md) for how this works in more detai
 
 you've now seen how dsx connects Discord interactions to your components.
 
-next, learn about **[reactive state](./reactive-state.md)** and how changing signals automatically updates your Discord messages.
+next, learn about **[reactive state](./state.md)** and how changing signals automatically updates your Discord messages.
