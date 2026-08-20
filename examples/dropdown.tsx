@@ -1,11 +1,5 @@
 import { Client, ColorResolvable } from "discord.js";
-import {
-    Actions,
-    Dropdown,
-    Embed,
-    Message,
-    Title,
-} from "../components";
+import { Actions, Dropdown, Embed, Message, Title } from "../components";
 import { useSignal } from "../hooks";
 import { component, dsx, mount } from "../renderer";
 
@@ -34,6 +28,7 @@ const Color = component(() => {
 
             <Actions>
                 <Dropdown
+                    type="string"
                     value={color.value as string}
                     options={[
                         {
@@ -50,9 +45,9 @@ const Color = component(() => {
                                 "This option changes the embed color to blue!",
                         },
                     ]}
-                    onChange={value => {
+                    onChange={i => {
                         color.value =
-                            value as ColorResolvable;
+                            i.values[0] as ColorResolvable;
                     }}
                     placeholder="Select an option"
                 />

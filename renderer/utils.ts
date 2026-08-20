@@ -1,7 +1,7 @@
-import { ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, Client, Message as DiscordMessage, MentionableSelectMenuBuilder, RoleSelectMenuBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, UserSelectMenuBuilder, type MessageCreateOptions, type MessageEditOptions } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, Client, Message as DiscordMessage, MentionableSelectMenuBuilder, ModalBuilder, RoleSelectMenuBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, TextInputBuilder, TextInputStyle, UserSelectMenuBuilder, type MessageCreateOptions, type MessageEditOptions } from "discord.js";
 import { runComponent } from "hooks/signal";
 import { render } from "renderer";
-import { ButtonProps, DropdownProps, getButtonHandler, getDropdownHandler } from "../components";
+import { ButtonProps, DropdownProps, getButtonHandler, getDropdownHandler, getModalHandler, ModalProps, TextInputProps } from "../components";
 import { VNode } from "../types";
 import { components, decodeResume, encodeResume } from "./resumability";
 
@@ -255,6 +255,65 @@ export const renderDropdowns = (
     return menus;
 };
 
+export const renderModal = (
+    vnode: VNode,
+): ModalBuilder => {
+    if (vnode.type !== "Modal") {
+        throw new Error("<Modal> expected");
+    }
+
+    const props = vnode.props as ModalProps;
+
+    const modal = new ModalBuilder()
+        .setCustomId(String(props.id))
+        .setTitle(props.title);
+
+    for (const child of vnode.children) {
+        if (!child) continue;
+
+        if (child.type !== "TextInput") {
+            throw new Error(
+                `<${child.type}> cannot be used directly inside <Modal>`
+            );
+        }
+
+        const input = child.props as TextInputProps;
+
+        const text = new TextInputBuilder()
+            .setCustomId(input.id)
+            .setLabel(input.label)
+            .setStyle(
+                input.style === "paragraph"
+                    ? TextInputStyle.Paragraph
+                    : TextInputStyle.Short
+            )
+            .setRequired(input.required ?? false);
+
+        if (input.placeholder !== undefined) {
+            text.setPlaceholder(input.placeholder);
+        }
+
+        if (input.value !== undefined) {
+            text.setValue(input.value);
+        }
+
+        if (input.minLength !== undefined) {
+            text.setMinLength(input.minLength);
+        }
+
+        if (input.maxLength !== undefined) {
+            text.setMaxLength(input.maxLength);
+        }
+
+        modal.addComponents(
+            new ActionRowBuilder<TextInputBuilder>()
+                .addComponents(text)
+        );
+    }
+
+    return modal;
+};
+
 const runtimes = new Map<string, {
     component: () => VNode;
     componentId: number;
@@ -265,6 +324,32 @@ const runtimes = new Map<string, {
 
 export const wireInteractions = (bot: Client) => {
     bot.on("interactionCreate", async interaction => {
+        if (interaction.isModalSubmit()) {
+            const handler = getModalHandler(
+                interaction.customId
+            );
+
+            if (!handler) return;
+
+            const values: Record<string, string> = {};
+
+            for (const [id] of interaction.fields.fields) {
+                values[id] =
+                    interaction.fields.getTextInputValue(id);
+            }
+
+            await handler(
+                interaction,
+                values,
+            );
+
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.deferUpdate();
+            }
+
+            return;
+        }
+
         if (
             !interaction.isButton() &&
             !interaction.isAnySelectMenu()
@@ -313,7 +398,9 @@ export const wireInteractions = (bot: Client) => {
                     if (subscribed.has(state)) continue;
 
                     subscribed.add(state);
-                    state.subscribers.add(runtime!.rerender);
+                    state.subscribers.add(
+                        runtime!.rerender
+                    );
                 }
             };
 
@@ -360,20 +447,24 @@ export const wireInteractions = (bot: Client) => {
             );
 
             if (handler) {
-                await handler(interaction.message);
+                await handler(interaction);
             }
-        } if (interaction.isAnySelectMenu()) {
+        }
+
+        if (interaction.isAnySelectMenu()) {
             const handler = getDropdownHandler(
                 id,
                 "onChange",
             );
 
             if (handler) {
-                await handler(interaction.values);
+                await handler(interaction);
             }
         }
 
-        await interaction.deferUpdate();
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.deferUpdate();
+        }
     });
 };
 

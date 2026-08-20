@@ -1,12 +1,9 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, ContainerBuilder, Message as DiscordMessage, EmbedBuilder, FileBuilder, InteractionResponse, MediaGalleryBuilder, MediaGalleryItemBuilder, MessageFlags, SectionBuilder, SeparatorBuilder, StringSelectMenuBuilder, TextDisplayBuilder, ThumbnailBuilder, type MessageCreateOptions } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, Client, ContainerBuilder, Message as DiscordMessage, EmbedBuilder, FileBuilder, InteractionResponse, MediaGalleryBuilder, MediaGalleryItemBuilder, MentionableSelectMenuBuilder, MessageFlags, RoleSelectMenuBuilder, SectionBuilder, SeparatorBuilder, StringSelectMenuBuilder, TextDisplayBuilder, ThumbnailBuilder, UserSelectMenuBuilder, type MessageCreateOptions } from "discord.js";
 import { ButtonProps, Description, Embed, Message, reset, Title, type ContainerProps, type FileProps, type MediaProps, type SeparatorProps, type ThumbnailProps } from "../components";
 import { runComponent } from "../hooks/signal";
 import { VNode } from "../types";
 import { renderEmbed } from "./renderers";
-import {
-    encodeResume,
-    getComponentId,
-} from "./resumability";
+import { encodeResume, getComponentId } from "./resumability";
 import { renderButtons, renderDropdowns, renderText, toEditOptions, wireInteractions } from "./utils";
 
 const wiredBots = new WeakSet<Client>();
@@ -102,7 +99,13 @@ export const renderLegacy = (
     if (dropdowns.length > 0) {
         for (const menu of dropdowns) {
             components.push(
-                new ActionRowBuilder<StringSelectMenuBuilder>()
+                new ActionRowBuilder<
+                    | StringSelectMenuBuilder
+                    | ChannelSelectMenuBuilder
+                    | RoleSelectMenuBuilder
+                    | UserSelectMenuBuilder
+                    | MentionableSelectMenuBuilder
+                >()
                     .addComponents(menu)
             );
         }
@@ -384,7 +387,13 @@ export const renderV2 = (
                     if (dropdowns.length > 0) {
                         for (const menu of dropdowns) {
                             container.addActionRowComponents(
-                                new ActionRowBuilder<StringSelectMenuBuilder>()
+                                new ActionRowBuilder<
+                                    | StringSelectMenuBuilder
+                                    | ChannelSelectMenuBuilder
+                                    | RoleSelectMenuBuilder
+                                    | UserSelectMenuBuilder
+                                    | MentionableSelectMenuBuilder
+                                >()
                                     .addComponents(menu)
                             );
                         }
@@ -408,7 +417,13 @@ export const renderV2 = (
             if (dropdowns.length > 0) {
                 for (const menu of dropdowns) {
                     components.push(
-                        new ActionRowBuilder<StringSelectMenuBuilder>()
+                        new ActionRowBuilder<
+                            | StringSelectMenuBuilder
+                            | ChannelSelectMenuBuilder
+                            | RoleSelectMenuBuilder
+                            | UserSelectMenuBuilder
+                            | MentionableSelectMenuBuilder
+                        >()
                             .addComponents(menu)
                     );
                 }

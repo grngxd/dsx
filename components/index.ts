@@ -1,4 +1,5 @@
-import { ButtonStyle, ChannelType, ColorResolvable, Message as DiscordMessage } from "discord.js";
+import { AnySelectMenuInteraction, ButtonInteraction, ButtonStyle, CacheType, ChannelSelectMenuInteraction, ChannelType, ColorResolvable, MentionableSelectMenuInteraction, ModalSubmitInteraction, RoleSelectMenuInteraction, StringSelectMenuInteraction, UserSelectMenuInteraction } from "discord.js";
+import { renderModal } from "renderer/utils";
 import { Component, VNode } from "../types";
 import { normalizeChildren } from "./utils";
 
@@ -104,7 +105,7 @@ export type ButtonProps = DefaultProps & {
 	style?: Exclude<ButtonStyle, ButtonStyle.Link>;
 	disabled?: boolean;
 	emoji?: string;
-	onClick?: (msg: DiscordMessage<boolean>) => void;
+	onClick?: (interaction: ButtonInteraction) => void;
 } | LinkButtonProps;
 
 export const Button: Component<ButtonProps> = (props): VNode<ButtonProps> => {
@@ -138,7 +139,7 @@ export type BaseDropdownProps = DefaultProps & {
     disabled?: boolean;
     minValues?: number;
     maxValues?: number;
-	onChange?: (values: string[]) => void;
+	onChange?: (interaction: AnySelectMenuInteraction<CacheType>) => void;
 };
 
 export type StringDropdownOption = {
@@ -153,28 +154,33 @@ export type StringDropdownProps = BaseDropdownProps & {
     type: "string";
     options: StringDropdownOption[];
     value?: string | string[];
+	onChange?: (interaction: StringSelectMenuInteraction<CacheType>) => void;
 };
 
 export type UserDropdownProps = BaseDropdownProps & {
     type: "user";
     defaultUsers?: string[];
+	onChange?: (interaction: UserSelectMenuInteraction<CacheType>) => void;
 };
 
 export type RoleDropdownProps = BaseDropdownProps & {
     type: "role";
     defaultRoles?: string[];
+	onChange?: (interaction: RoleSelectMenuInteraction<CacheType>) => void;
 };
 
 export type ChannelDropdownProps = BaseDropdownProps & {
     type: "channel";
     defaultChannels?: string[];
     channelTypes?: ChannelType[];
+	onChange?: (interaction: ChannelSelectMenuInteraction<CacheType>) => void;
 };
 
 export type MentionableDropdownProps = BaseDropdownProps & {
     type: "mentionable";
     defaultUsers?: string[];
     defaultRoles?: string[];
+	onChange?: (interaction: MentionableSelectMenuInteraction<CacheType>) => void;
 };
 
 export type DropdownProps =
@@ -215,7 +221,88 @@ export const getDropdownHandler = (
     return dropdownHandlers.get(id)?.get(event);
 };
 
+export const showModal = async (
+    interaction: ButtonInteraction,
+    vnode: VNode,
+) => {
+    await interaction.showModal(
+        renderModal(vnode)
+    );
+};
+
+let modalId = 0;
+
+const generateModalId = () => `m${modalId++}`;
+
+export type ModalProps = DefaultProps & {
+    id?: string;
+    title: string;
+    onSubmit?: (
+        interaction: ModalSubmitInteraction,
+        values: Record<string, string>
+    ) => void | Promise<void>;
+};
+
+export type TextInputProps = {
+    id: string;
+    label: string;
+    description?: string;
+    placeholder?: string;
+    value?: string;
+    required?: boolean;
+    minLength?: number;
+    maxLength?: number;
+    style?: "short" | "paragraph";
+};
+
+const modalHandlers = new Map<
+    string,
+    (
+        interaction: ModalSubmitInteraction,
+        values: Record<string, string>
+    ) => void | Promise<void>
+>();
+
+export const Modal: Component<ModalProps> = (
+    props
+): VNode<ModalProps> => {
+    const id = props.id ?? generateModalId();
+
+    if (props.onSubmit) {
+        modalHandlers.set(id, props.onSubmit);
+    }
+
+    return {
+        type: "Modal",
+        props: { ...props, id },
+        children: normalizeChildren(props.children),
+    };
+};
+
+export const TextInput: Component<TextInputProps> = (
+    props
+): VNode<TextInputProps> => ({
+    type: "TextInput",
+    props,
+    children: [],
+});
+
+export const getModalHandler = (id: string) => {
+    return modalHandlers.get(id);
+};
+
 // v2 components
+// v2 components
+// v2 components
+// v2 components
+// v2 components
+// v2 components
+// v2 components
+// v2 components
+// v2 components
+// v2 components
+// v2 components
+
 export type TextDisplayProps = DefaultProps;
 
 export const TextDisplay: Component<TextDisplayProps> = (

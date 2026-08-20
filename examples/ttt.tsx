@@ -1,25 +1,7 @@
-import {
-    ApplicationCommandOptionType,
-    ButtonStyle,
-    Client,
-    MessageFlags,
-} from "discord.js";
-
-import {
-    Actions,
-    Button,
-    Container,
-    Message,
-    Separator,
-    TextDisplay,
-} from "../components";
-
+import { ApplicationCommandOptionType, ButtonStyle, Client, MessageFlags } from "discord.js";
+import { Actions, Button, Container, Message, Separator, TextDisplay } from "../components";
 import { useSignal } from "../hooks";
-import {
-    component,
-    dsx,
-    mount,
-} from "../renderer";
+import { component, dsx, mount } from "../renderer";
 
 const bot = new Client({
     intents: ["Guilds"],

@@ -1,18 +1,5 @@
 import { ButtonStyle, Client } from "discord.js";
-import {
-    Actions,
-    Button,
-    Container,
-    Dropdown,
-    File,
-    Media,
-    MediaGallery,
-    Message,
-    Section,
-    Separator,
-    TextDisplay,
-    Thumbnail,
-} from "../components";
+import { Actions, Button, Container, Dropdown, File, Media, MediaGallery, Message, Section, Separator, TextDisplay, Thumbnail } from "../components";
 import { useSignal } from "../hooks";
 import { component, dsx, mount } from "../renderer";
 
@@ -110,8 +97,8 @@ const Cat = component(() => {
                                 description: "Negative cat",
                             },
                         ]}
-                        onChange={values => {
-                            refresh(values);
+                        onChange={i => {
+                            refresh(i.values);
                         }}
                     />
                 </Actions>

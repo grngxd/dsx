@@ -1,9 +1,5 @@
 import { Client } from "discord.js";
-import {
-    Actions,
-    Button,
-    Message,
-} from "../components";
+import { Actions, Button, Message } from "../components";
 import { useSignal } from "../hooks";
 import { component, dsx, mount } from "../renderer";
 
