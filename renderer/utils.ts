@@ -1,4 +1,4 @@
-import { ButtonBuilder, ButtonStyle, Client, Message as DiscordMessage, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, type MessageCreateOptions, type MessageEditOptions } from "discord.js";
+import { ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, Client, Message as DiscordMessage, MentionableSelectMenuBuilder, RoleSelectMenuBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, UserSelectMenuBuilder, type MessageCreateOptions, type MessageEditOptions } from "discord.js";
 import { runComponent } from "hooks/signal";
 import { render } from "renderer";
 import { ButtonProps, DropdownProps, getButtonHandler, getDropdownHandler } from "../components";
@@ -77,52 +77,181 @@ export const renderDropdowns = (
     root: VNode,
     component: number,
     hooks: unknown[],
-): StringSelectMenuBuilder[] => {
-    const menus: StringSelectMenuBuilder[] = [];
+): (
+    | StringSelectMenuBuilder
+    | UserSelectMenuBuilder
+    | RoleSelectMenuBuilder
+    | ChannelSelectMenuBuilder
+    | MentionableSelectMenuBuilder
+)[] => {
+    const menus: (
+        | StringSelectMenuBuilder
+        | UserSelectMenuBuilder
+        | RoleSelectMenuBuilder
+        | ChannelSelectMenuBuilder
+        | MentionableSelectMenuBuilder
+    )[] = [];
 
     const walk = (node: VNode) => {
         if (node.type === "Dropdown") {
             const props = node.props as DropdownProps;
-            const options: StringSelectMenuOptionBuilder[] = [];
-
-            if (props.options) {
-                for (const option of props.options) {
-                    const o = new StringSelectMenuOptionBuilder()
-                        .setLabel(option.label)
-                        .setDescription(option.description)
-                        .setValue(option.value)
-                        .setDefault(option.value === props.value);
-
-                    if (option.emoji) {
-                        o.setEmoji(option.emoji);
-                    }
-
-                    options.push(o);
-                }
-            }
-
             const id = String((props as any).id ?? "");
 
-            const menu = new StringSelectMenuBuilder()
-                .setCustomId(
-                    encodeResume(component, id, hooks)
-                )
-                .setPlaceholder(props.placeholder ?? "")
-                .addOptions(...options);
+            const customId = encodeResume(
+                component,
+                id,
+                hooks,
+            );
 
-            menus.push(menu);
+            const minValues = props.minValues ?? 1;
+            const maxValues = props.maxValues ?? 1;
+
+            if (props.type === "string") {
+                const menu = new StringSelectMenuBuilder()
+                    .setCustomId(customId)
+                    .setPlaceholder(
+                        props.placeholder ?? "Select an option"
+                    )
+                    .setDisabled(props.disabled ?? false)
+                    .setMinValues(minValues)
+                    .setMaxValues(maxValues);
+
+                const selected = props.value === undefined
+                    ? []
+                    : Array.isArray(props.value)
+                        ? props.value
+                        : [props.value];
+
+                for (const option of props.options) {
+                    const item = new StringSelectMenuOptionBuilder()
+                        .setLabel(option.label)
+                        .setValue(option.value);
+
+                    if (option.description !== undefined) {
+                        item.setDescription(option.description);
+                    }
+
+                    if (option.emoji !== undefined) {
+                        item.setEmoji(option.emoji);
+                    }
+
+                    if (
+                        option.default === true ||
+                        selected.includes(option.value)
+                    ) {
+                        item.setDefault(true);
+                    }
+
+                    menu.addOptions(item);
+                }
+
+                menus.push(menu);
+            }
+
+            if (props.type === "user") {
+                const menu = new UserSelectMenuBuilder()
+                    .setCustomId(customId)
+                    .setPlaceholder(
+                        props.placeholder ?? "Select users"
+                    )
+                    .setDisabled(props.disabled ?? false)
+                    .setMinValues(minValues)
+                    .setMaxValues(maxValues);
+
+                if (props.defaultUsers?.length) {
+                    menu.addDefaultUsers(
+                        ...props.defaultUsers
+                    );
+                }
+
+                menus.push(menu);
+            }
+
+            if (props.type === "role") {
+                const menu = new RoleSelectMenuBuilder()
+                    .setCustomId(customId)
+                    .setPlaceholder(
+                        props.placeholder ?? "Select roles"
+                    )
+                    .setDisabled(props.disabled ?? false)
+                    .setMinValues(minValues)
+                    .setMaxValues(maxValues);
+
+                if (props.defaultRoles?.length) {
+                    menu.addDefaultRoles(
+                        ...props.defaultRoles
+                    );
+                }
+
+                menus.push(menu);
+            }
+
+            if (props.type === "channel") {
+                const menu = new ChannelSelectMenuBuilder()
+                    .setCustomId(customId)
+                    .setPlaceholder(
+                        props.placeholder ?? "Select channels"
+                    )
+                    .setDisabled(props.disabled ?? false)
+                    .setMinValues(minValues)
+                    .setMaxValues(maxValues);
+
+                if (props.channelTypes?.length) {
+                    menu.addChannelTypes(
+                        ...props.channelTypes
+                    );
+                }
+
+                if (props.defaultChannels?.length) {
+                    menu.addDefaultChannels(
+                        ...props.defaultChannels
+                    );
+                }
+
+                menus.push(menu);
+            }
+
+            if (props.type === "mentionable") {
+                const menu = new MentionableSelectMenuBuilder()
+                    .setCustomId(customId)
+                    .setPlaceholder(
+                        props.placeholder ??
+                        "Select users or roles"
+                    )
+                    .setDisabled(props.disabled ?? false)
+                    .setMinValues(minValues)
+                    .setMaxValues(maxValues);
+
+                if (props.defaultUsers?.length) {
+                    menu.addDefaultUsers(
+                        ...props.defaultUsers
+                    );
+                }
+
+                if (props.defaultRoles?.length) {
+                    menu.addDefaultRoles(
+                        ...props.defaultRoles
+                    );
+                }
+
+                menus.push(menu);
+            }
         }
 
         if (Array.isArray(node.children)) {
-            node.children.forEach(child => {
-                if (typeof child === "object" && child !== null) {
+            for (const child of node.children) {
+                if (
+                    typeof child === "object" &&
+                    child !== null
+                ) {
                     walk(child as VNode);
                 }
-            });
+            }
         }
     };
 
     walk(root);
+
     return menus;
 };
 
@@ -138,7 +267,7 @@ export const wireInteractions = (bot: Client) => {
     bot.on("interactionCreate", async interaction => {
         if (
             !interaction.isButton() &&
-            !interaction.isStringSelectMenu()
+            !interaction.isAnySelectMenu()
         ) {
             return;
         }
@@ -233,14 +362,14 @@ export const wireInteractions = (bot: Client) => {
             if (handler) {
                 await handler(interaction.message);
             }
-        } else {
+        } if (interaction.isAnySelectMenu()) {
             const handler = getDropdownHandler(
                 id,
                 "onChange",
             );
 
             if (handler) {
-                await handler(interaction.values[0]);
+                await handler(interaction.values);
             }
         }
 

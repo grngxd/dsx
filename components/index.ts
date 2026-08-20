@@ -1,4 +1,4 @@
-import { ButtonStyle, ColorResolvable, Message as DiscordMessage } from "discord.js";
+import { ButtonStyle, ChannelType, ColorResolvable, Message as DiscordMessage } from "discord.js";
 import { Component, VNode } from "../types";
 import { normalizeChildren } from "./utils";
 
@@ -132,47 +132,87 @@ export const getButtonHandler = (
 	return btnHandlers.get(id)?.get(event);
 };
 
-export type DropdownOption = {
+export type BaseDropdownProps = DefaultProps & {
+    id?: string;
+    placeholder?: string;
+    disabled?: boolean;
+    minValues?: number;
+    maxValues?: number;
+	onChange?: (values: string[]) => void;
+};
+
+export type StringDropdownOption = {
     emoji?: string;
     label: string;
-    description: string;
+    description?: string;
     value: string;
     default?: boolean;
 };
 
-export type DropdownProps = DefaultProps & {
-	id?: string;
-	placeholder?: string
-	options?: DropdownOption[];
-	onChange?: (value: string) => void;
-	value?: string;
-}
+export type StringDropdownProps = BaseDropdownProps & {
+    type: "string";
+    options: StringDropdownOption[];
+    value?: string | string[];
+};
+
+export type UserDropdownProps = BaseDropdownProps & {
+    type: "user";
+    defaultUsers?: string[];
+};
+
+export type RoleDropdownProps = BaseDropdownProps & {
+    type: "role";
+    defaultRoles?: string[];
+};
+
+export type ChannelDropdownProps = BaseDropdownProps & {
+    type: "channel";
+    defaultChannels?: string[];
+    channelTypes?: ChannelType[];
+};
+
+export type MentionableDropdownProps = BaseDropdownProps & {
+    type: "mentionable";
+    defaultUsers?: string[];
+    defaultRoles?: string[];
+};
+
+export type DropdownProps =
+    | StringDropdownProps
+    | UserDropdownProps
+    | RoleDropdownProps
+    | ChannelDropdownProps
+    | MentionableDropdownProps;
 
 const dropdownHandlers = new Map<string, Map<string, Function>>();
-export const Dropdown: Component<DropdownProps> = (
-	props
-): VNode<DropdownProps> => {
-	const id = props.id ?? generate();
-	
-	for (const [key, value] of Object.entries(props)) {
-		if (key.startsWith("on") && typeof value === "function") {
-			if (!dropdownHandlers.has(id)) dropdownHandlers.set(id, new Map());
-			dropdownHandlers.get(id)!.set(key, value);
-		}
-	}
 
-	return {
-		type: "Dropdown",
-		props: { ...props, id } as any,
-		children: normalizeChildren(props.children),
-	};
+export const Dropdown: Component<DropdownProps> = (
+    props
+): VNode<DropdownProps> => {
+    const id = props.id ?? generate();
+
+    for (const [key, value] of Object.entries(props)) {
+        if (key.startsWith("on") && typeof value === "function") {
+            if (!dropdownHandlers.has(id)) {
+                dropdownHandlers.set(id, new Map());
+            }
+
+            dropdownHandlers.get(id)!.set(key, value);
+        }
+    }
+
+    return {
+        type: "Dropdown",
+        props: { ...props, id },
+        children: normalizeChildren(props.children),
+    };
 };
 
 export const getDropdownHandler = (
-	id: string,
-	event: string
+    id: string,
+    event: string
 ): Function | undefined => {
-	return dropdownHandlers.get(id)?.get(event);
+    return dropdownHandlers.get(id)?.get(event);
 };
 
 // v2 components

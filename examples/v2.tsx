@@ -27,20 +27,17 @@ const get = (options = "") =>
 
 const Cat = component(() => {
     const cat = useSignal(get());
-    const filter = useSignal("none");
+    const filters = useSignal<string[]>([]);
     const index = useSignal(1);
 
-    const refresh = (
-        nextFilter = filter.value
-    ) => {
-        filter.value = nextFilter;
+    const refresh = (nextFilters = filters.value) => {
+        filters.value = nextFilters;
 
-        cat.value = get(
-            nextFilter === "none"
-                ? ""
-                : `?filter=${nextFilter}`
-        );
+        const query = nextFilters.length
+            ? `?filter=${nextFilters.join(",")}`
+            : "";
 
+        cat.value = get(query);
         index.value++;
     };
 
@@ -67,7 +64,7 @@ const Cat = component(() => {
                 <Section>
                     <TextDisplay>
                         cat #{index.value}{"\n"}
-                        filter: {filter.value}
+                        filters: {filters.value.join(", ") || "none"}
                     </TextDisplay>
 
                     <Thumbnail
@@ -91,19 +88,16 @@ const Cat = component(() => {
 
                 <Actions>
                     <Dropdown
-                        value={filter.value}
-                        placeholder="Filter"
+                        type="string"
+                        value={filters.value}
+                        minValues={0}
+                        maxValues={3}
+                        placeholder="Filters"
                         options={[
-                            {
-                                label: "None",
-                                value: "none",
-                                description: "Random cat",
-                            },
                             {
                                 label: "Mono",
                                 value: "mono",
-                                description:
-                                    "Black and white cat",
+                                description: "Black and white cat",
                             },
                             {
                                 label: "Blur",
@@ -116,8 +110,8 @@ const Cat = component(() => {
                                 description: "Negative cat",
                             },
                         ]}
-                        onChange={value => {
-                            refresh(value);
+                        onChange={values => {
+                            refresh(values);
                         }}
                     />
                 </Actions>
